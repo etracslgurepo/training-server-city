@@ -1,0 +1,28 @@
+=================
+Restore Databases
+=================
+
+1. Open a Command Prompt console from this location "_res/_initial/mysql"
+
+2. Restore the "eor" database 
+
+   mysql -u root -p -f  <  00-create-eor-db.sql
+
+3. Restore the "training_image" database 
+
+   mysql -u root -p -f  <  01-create-image-db.sql
+
+4. Restore the "training_notification" database 
+
+   mysql -u root -p -f  <  02-create-notification-db.sql
+
+5. Restore the "training_etracs" database schema
+
+   mysql -u root -p -f  <  03-create-etracs-schema.sql
+
+6. Insert the "training_etracs" data 
+
+   mysql -u root -p -f  <  04-insert-etracs-data.sql
+
+
+7. DONE !!!

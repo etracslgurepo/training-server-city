@@ -1,0 +1,83 @@
+==========================
+A. Restore Databases
+==========================
+
+1. Open a Navicat or SQL Management Studio 
+   and connect to your database engine
+
+2. Open a Query window 
+
+3. Load and execute the file "_res/_initial/mssql/00-create-eor-db.sql" 
+
+4. Load and execute the file "_res/_initial/mssql/01-create-image-db.sql" 
+
+5. Load and execute the file "_res/_initial/mssql/02-create-notification-db.sql" 
+
+6. Restore the backup file "_res/_initial/mssql/training_etracs_city.bak" 
+
+7. DONE !!!
+
+
+
+==========================
+B. Modify DataSource Files
+==========================
+
+1. Go to folder "services/datasources"
+
+2. Edit the file "epaymentds" and set the file content to: 
+
+dialect=mssql
+driverClass=com.microsoft.sqlserver.jdbc.SQLServerDriver
+url=jdbc:sqlserver://${dbserver_host};DatabaseName=${db_epayment}
+user=${dbserver_user}
+pwd=${dbserver_pass}
+
+
+3. Save and close the text editor.
+
+4. Edit the file "etracsds" and set the file content to: 
+
+dialect=mssql
+driverClass=com.microsoft.sqlserver.jdbc.SQLServerDriver
+url=jdbc:sqlserver://${dbserver_host};DatabaseName=${db_etracs}
+user=${dbserver_user}
+pwd=${dbserver_pass}
+
+
+5. Save and close the text editor.
+
+6. Edit the file "imageds" and set the file content to: 
+
+dialect=mssql
+driverClass=com.microsoft.sqlserver.jdbc.SQLServerDriver
+url=jdbc:sqlserver://${dbserver_host};DatabaseName=${db_image}
+user=${dbserver_user}
+pwd=${dbserver_pass}
+
+
+7. Save and close the text editor.
+
+8. Edit the file "notificationds" and set the file content to: 
+
+dialect=mssql
+driverClass=com.microsoft.sqlserver.jdbc.SQLServerDriver
+url=jdbc:sqlserver://${dbserver_host};DatabaseName=${db_notification}
+user=${dbserver_user}
+pwd=${dbserver_pass}
+
+
+9. Save and close the text editor.
+
+10. Edit the file "queueds" and set the file content to: 
+
+dialect=mssql
+driverClass=com.microsoft.sqlserver.jdbc.SQLServerDriver
+url=jdbc:sqlserver://${dbserver_host};DatabaseName=${db_queue}
+user=${dbserver_user}
+pwd=${dbserver_pass}
+
+
+11. Save and close the text editor.
+
+12. DONE !!!
