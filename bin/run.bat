@@ -6,6 +6,8 @@ if exist env.conf (
 	) 
 ) 
 
+title TRAINING-SERVER-MUNI
+
 rem Setup the java command
 rem set JAVA_HOME=C:\Apps\jdk7u80-x64
 

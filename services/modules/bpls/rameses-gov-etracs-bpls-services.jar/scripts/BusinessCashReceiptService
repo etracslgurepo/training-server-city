@@ -8,6 +8,12 @@ public class BusinessCashReceiptService  {
 	@ActiveDB("business_receivable")
 	def receivable;
 
+	@ActiveDB("business")
+	def business;
+
+	@DataContext("business_application")
+	def appEm;
+
 	@Service("BusinessBillingService")
 	def billingSvc;
 	
@@ -16,12 +22,6 @@ public class BusinessCashReceiptService  {
 	
 	@Service("BusinessTaxCreditService")
 	def taxCreditSvc;
-
-	@ActiveDB("business")
-	def business;
-
-	@ActiveDB("business_application")
-	def app;
 
 	@Service("NumberService")
 	def numSvc;
@@ -32,23 +32,33 @@ public class BusinessCashReceiptService  {
 
 	@ProxyMethod
 	public def getBusinessList(o) {
-		if(!o.bin && !o.businessname && !o.ownername) return [];
+		def mm = [:]; 
+		if ( o.bin ) mm.bin = o.bin;
+		if ( o.ownername ) mm.ownername = o.ownername; 
+		if ( o.tradename ) mm.tradename = o.tradename; 
+		if ( o.businessname ) mm.businessname = o.businessname; 
+
+		if ( mm.isEmpty()) return []; 
 
 		def sb = new StringBuilder();
-		if( o.bin ) {
-			o.bin += "%";
+		if ( mm.bin ) {
+			mm.bin += "%";
 			sb.append( ''' AND b.bin LIKE $P{bin} ''' );
 		}	
-		if( o.businessname ) {
-			o.businessname += "%";
+		if ( mm.businessname ) {
+			mm.businessname += "%";
 			sb.append( ''' AND b.businessname LIKE $P{businessname} ''' );
 		}
-		if( o.ownername ) {
-			o.ownername += "%";
-			sb.append( ''' AND b.owner_name LIKE $P{ownername} ''' );
+		if ( mm.tradename ) {
+			mm.tradename += "%";
+			sb.append( ''' AND b.tradename LIKE $P{tradename} ''' );
 		}
-		o.filter = sb.toString();
-		return receivable.getBusinessListForBilling( o );
+		if ( mm.ownername ) {
+			mm.ownername += "%";
+			sb.append( ''' AND b.owner_name LIKE $P{ownername} ''' );
+		} 
+		mm.filter = sb.toString();
+		return receivable.getBusinessListForBilling( mm );
 	}
 
 	@ProxyMethod
@@ -69,15 +79,15 @@ public class BusinessCashReceiptService  {
 				sappno = param.appno;
 			}
 			if ( sappno.contains('-')) { 
-				info = app.findInfoByAppno( param ); 
+				info = appEm.findInfoByAppno( param ); 
 			} else { 
-				info = app.findInfoByBIN([ bin: sappno ]); 
+				info = appEm.findInfoByBIN([ bin: sappno ]); 
 			} 
 
 			if ( !info ) throw new Exception("Business record not found with refno " + sappno);
 
 		} else if ( param.applicationid ) {
-			info = app.findInfoByAppid( param ); 
+			info = appEm.findInfoByAppid( param ); 
 			if ( !info ) throw new Exception("Business record not found with applicationid " + param.applicationid);
 		} 
 
@@ -98,7 +108,7 @@ public class BusinessCashReceiptService  {
         m.bin = info.bin;
 
         if(m.apptype!='ADDITIONAL') {
-	        def list = app.getDelinquentApplications([ businessid: m.businessid, appyear: m.appyear ]); 
+	        def list = appEm.getDelinquentApplications([ businessid: m.businessid, appyear: m.appyear ]); 
 	        if ( list ) {
 	        	def dapp = list.first(); 
 	        	throw new Exception('This business is delinquent in '+ dapp.iyear +'. Please verify.'); 
@@ -125,13 +135,39 @@ public class BusinessCashReceiptService  {
 			throw new Exception( errmsg );
 		} 
 
+		if ( param.payment?.option.toString().toUpperCase() == 'SPECIFY-AMOUNT' ) {
+			if ( param.payment?.txnmode.toString().toUpperCase() == 'CAPTURE' ) {
+				// accepts the partial payment request 
+			} 
+			else if ( r.taxfees.find{( it.iyear != it.appyear )} ) {
+				throw new Exception(""" 
+					Partial payment is not allowed for this type of application. 
+					Please use the quarterly option instead.
+				""".trim());
+			}
+		}
+
+		r.taxfees.eachWithIndex{ o,idx-> 
+			o.sortorder = idx; 
+		}
+
 		r.app = param.app; 
+		if ( r.app ) {
+			r.app.objid = r.applicationid; 
+		}
+
 		r.billdate = param.billdate; 		
 		r.payment = param.payment; 
-		if (!r.payment) r.payment = [option:'FULLYEAR']; 
+		if ( !r.payment ) { 
+			r.payment = [option:'FULLYEAR']; 
+		} 
+		if ( r.payment.option == 'FULLQTR' ) {
+			r.payment.year = r.app.appyear;
+		}
 
 		def z = billingSvc.getBillingForPayment( r );
-		def m = [:];		
+
+		def m = [:]; 
 		m.expirydate = z.expirydate;
 		m.nextbilldate = z.expirydate; 
 

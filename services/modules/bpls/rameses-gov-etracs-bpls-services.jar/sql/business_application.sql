@@ -44,14 +44,14 @@ ORDER BY ba.appyear DESC, ba.txndate ASC
 
 [getMyTaskList]
 SELECT 
-    ba.objid, 
-    b.owner_name AS business_owner_name,
-    b.businessname AS business_businessname,
-    b.address_text AS business_address_text,
+    ba.objid, ba.state AS appstate, ba.txndate, 
+    ba.ownername AS business_owner_name, 
+    ba.tradename AS business_businessname,
+    ba.businessaddress AS business_address_text,
     b.bin AS business_bin, ba.appyear,
-    ba.appno, ba.apptype, ba.dtfiled AS appdate,
-    tsk.assignee_objid, tsk.assignee_name, 
-    tsk.startdate, tsk.message 
+    ba.appno, ba.apptype, ba.dtfiled AS appdate, 
+    tsk.assignee_objid, tsk.assignee_name, tsk.startdate, 
+    tsk.state, tsk.enddate, tsk.objid AS taskid 
 FROM business_application_task tsk   
     INNER JOIN business_application ba ON tsk.refid=ba.objid 
     INNER JOIN business b ON ba.business_objid=b.objid 
@@ -156,7 +156,18 @@ SELECT * FROM business_application
 WHERE business_objid=$P{businessid} AND appyear=$P{appyear} AND apptype=$P{apptype}
 
 [getListByBusiness]
-SELECT * FROM business_application WHERE business_objid=$P{businessid} ORDER BY dtfiled DESC
+select a.*, t0.*  
+from ( 
+    select a.objid as applicationid, 
+        sum(r.amount) as totalamount, sum(r.amtpaid) as totalamtpaid, 
+        (sum(r.amount) - sum(r.amtpaid)) as balance 
+    from business_application a 
+        left join business_receivable r on r.applicationid = a.objid 
+    where a.business_objid = $P{businessid} 
+    group by a.objid 
+)t0, business_application a 
+where a.objid = t0.applicationid 
+order by a.appyear desc, a.dtfiled desc, a.txndate desc 
 
 [updatePermit]
 UPDATE business_application SET 
@@ -239,13 +250,18 @@ where a.appyear = xx.appyear and a.txndate = xx.txndate
 
 [getDelinquentApplications]
 select 
-    businessid, iyear, sum(amount) as amount, sum(amtpaid) as amtpaid  
-from business_receivable 
-where businessid=$P{businessid} 
-    and iyear < $P{appyear}  
-    and (amount-amtpaid) > 0.0 
-group by businessid, iyear 
-order by iyear 
+    b.objid as businessid, a.appyear as iyear, 
+    sum(r.amount) as amount, sum(r.amtpaid) as amtpaid, 
+    (sum(r.amount) - sum(r.amtpaid)) as balance 
+from business b 
+    inner join business_application a on a.business_objid = b.objid 
+    inner join business_receivable r on r.applicationid = a.objid 
+where b.objid = $P{businessid} 
+  and a.appyear < $P{appyear} 
+    and a.state in ('PAYMENT','RELEASE','COMPLETED') 
+group by b.objid, a.appyear 
+having (sum(r.amount)-sum(r.amtpaid)) > 0 
+order by a.appyear 
 
 [findBusinessAddress]
 select addr.* 

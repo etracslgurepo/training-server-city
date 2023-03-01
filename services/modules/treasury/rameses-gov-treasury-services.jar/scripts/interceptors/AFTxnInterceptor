@@ -34,6 +34,9 @@ class AFTxnInterceptor {
 	@DataContext("sys_user")
 	def user_db;
 
+	@DataContext( dynamic=true )
+	def dynaEm;
+
 	@Env
 	def env;
 
@@ -62,10 +65,14 @@ class AFTxnInterceptor {
 	public void afterOpen( evt ) { 
 		def result = evt.result;
 
-		def users = [result.user, result.issueto].findAll{( it )}
+		def users = [result.user, result.issueto, result.issuefrom].findAll{( it )}
 		users.each{ o-> 
-			def user = user_db.find([ objid: o.objid.toString() ]).select('objid,jobtitle').first();
-			if ( user ) o.title = user.jobtitle; 
+			def user = user_db.find([ objid: o.objid.toString() ]).select('objid,firstname,middlename,lastname,jobtitle').first();
+			if ( user ) {
+				o.title = user.jobtitle; 
+				def sname = [user.firstname, user.middlename, user.lastname].findAll{( it )}.join(' '); 
+				if ( sname ) o.name = sname; 
+			}  
 		} 	
 
 		result.requester = [objid: null]; 
@@ -98,6 +105,10 @@ class AFTxnInterceptor {
 			]} 
 			r.remarks = r.items.collect{ i-> i.startseries + "-" + i.endseries +";" }.join(","); 
 		} 
+
+		if ( result.txntype.toString().toUpperCase().matches('RETURN|TRANSFER')) { 
+			buildDataForCertification( result ); 
+		}
 	} 
 
 	@Before(pattern="PersistenceService.removeEntity", eval="#{ args[0]._schemaname == 'aftxn' }")
@@ -239,6 +250,30 @@ class AFTxnInterceptor {
 			afInvSvc.add( ref, res.afitems[idx] );
 		} 
 
+		buildDataForCertification( res ); 
 	} 
 
+
+	void buildDataForCertification( result ) {
+		def txntype = result.txntype.toString().toUpperCase(); 
+		if ( txntype == 'RETURN' ) {
+			result.stubs = dynaEm.lookup('aftxn').getReturnItems([ aftxnid: result.objid ]); 
+		}
+		else if ( txntype == 'TRANSFER' ) {
+			result.stubs = dynaEm.lookup('aftxn').getTransferItems([ aftxnid: result.objid ]);
+		}
+
+		if ( txntype.matches('RETURN|TRANSFER')) {
+			result.stubs.each{ o-> 
+				if ( o.af?.formtype == 'serial' ) {
+					o.series = [o.startseries, o.endseries].findAll{( it )}.join(' - '); 
+				} 
+				else if ( o.series == null ) {
+					o.series = ''; 
+				} 
+			} 
+		}
+
+		result.stubcount = ( result.stubs ? result.stubs.size() : 0 ); 
+	}
 }

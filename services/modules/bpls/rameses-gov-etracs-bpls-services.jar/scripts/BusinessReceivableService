@@ -141,12 +141,36 @@ public class BusinessReceivableService  {
 
 	@ProxyMethod
 	public def getReceivablePayments(o) {
-		return em.getReceivablePayments( o );
+		def results = []; 
+		em.getReceivablePayments( o ).each{ pmt-> 
+			if ( pmt.reftype == 'cashreceipt_group' ) {
+				def cgEm = dynaEm.lookup( pmt.reftype ); 
+				cgEm.debug = true;
+				def receipts = cgEm.getReceipts([ objid: pmt.paymentid ]); 
+				if ( receipts ) {
+					receipts.sort{ it.receiptno }.reverse().each{
+						results << [
+							refid: it.objid, refno: it.receiptno, 
+							refdate: it.receiptdate, reftype: 'cashreceipt', 
+							amount: it.amount, group: [ objid: pmt.paymentid ]
+						]; 
+					}
+				} 
+				else {
+					results << pmt; 	
+				}
+			} 
+			else {
+				results << pmt; 
+			}
+		}
+		return results; 
 	}	
 
 	@ProxyMethod
 	public def getHasPaidReceivable(o) {
-		if(!o.applicationid) throw new Exception("applicationid is required in getHasPaidReceivable");
+		if(!o.applicationid) 
+			throw new Exception("applicationid  parameter is required in getHasPaidReceivable");
 		def count = em.findHasPaidReceivable( o ).counter;
 		if(count>0) 
 			return true;

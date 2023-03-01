@@ -73,3 +73,15 @@ DELETE FROM sys_wf_node WHERE processname=$P{processname}
 select * from sys_wf_node 
 where domain=$P{domain} ${filter} 
 order by idx 
+
+[closeFork]
+update 
+  ${taskTablename} aa, 
+  (
+    SELECT b.parentprocessid, MAX(b.enddate) as maxenddate 
+    FROM ${taskTablename} b 
+    WHERE b.parentprocessid = $P{parentprocessid} 
+    GROUP by b.parentprocessid 
+  )bb 
+set aa.enddate = bb.maxenddate 
+where aa.objid = bb.parentprocessid

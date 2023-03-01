@@ -132,7 +132,7 @@ public class BusinessApplicationRenewInterceptor {
 		business_lockid.find( findby ).update([ lockid: new java.rmi.server.UID().toString() ]); 
 		// validate business record 
 		def bb = business_lockid.findBusiness( findby ); 
-		if ( !bb?.objid ) throw new Exception("'"+ find.objid +"' Business Master account not found"); 
+		if ( !bb?.objid ) throw new Exception("'"+ findby.objid +"' Business Master account not found"); 
 
 		bb.state = ( bb.state ? bb.state.toString().toUpperCase() : null ); 
 		if ( !bb.state.toString().matches('ACTIVE|PROCESSING') ) 

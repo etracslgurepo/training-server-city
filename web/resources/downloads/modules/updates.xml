@@ -1,6 +1,6 @@
 <app>
 <env>
-app.title=ETRACS 2.5 build 2.5.05.01 (${lgu_name})
+app.title=ETRACS 2.5 build 2.5.05.01-007 (${lgu_name})
 app.host=${app_server_ip}:18070
 app.cluster=osiris3
 app.context=etracs25
@@ -16,24 +16,24 @@ ws.host=${app_server_ip}:18060
 socketio.host=${app_server_ip}:17080
 </env>
 <modules>
-  <module version="1.00" file="libs/commons-net-3.5.jar"  />
+   <module version="1.00" file="libs/commons-net-3.5.jar"  />
 
-  <import file="custom/updates.pxml"/> 
+   <import file="custom/updates.pxml"/> 
 
-  <import file="core/updates.pxml"/> 
+   <import file="core/updates.pxml"/> 
 
-  <import file="shared/updates.pxml"/> 
+   <import file="shared/updates.pxml"/> 
 
-  <import file="etracs/updates.pxml"/> 
+   <import file="etracs/updates.pxml"/> 
 
-  <import file="entity/updates.pxml"/> 
+   <import file="entity/updates.pxml"/> 
 
-  <import file="treasury/updates.pxml"/> 
+   <import file="treasury/updates.pxml"/> 
 
-  <import file="queue/updates.pxml"/> 
+   <import file="rptis/pub-updates.pxml"/> 
 
-  <import file="rptis/updates.pxml"/> 
+   <import file="bpls/pub-updates.pxml"/>   
 
-  <import file="bpls/updates.pxml"/> 
+   <import file="queue/updates.pxml"/> 
 </modules>
 </app>

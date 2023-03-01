@@ -19,11 +19,15 @@ public class BusinessApplicationGlobalInterceptor {
 		def params = evt.args[0]; 
 		params.applicationid = params.objid; 
 
-		if ( params.action=='revert' && params.fromstate=='release' ) { 
-			def list = paySvc.getApplicationPayments( params ); 
-			if ( list ) { 
-				throw new Exception('Cannot revert since payments have already been made');  
-			} 
+		if ( params.action == 'revert' && params.fromstate == 'release' ) { 
+			if ( params.payment?.verified.toString().matches('true|1')) {
+				// do nothing because it is already verified 
+			}
+			else {
+				def list = paySvc.getApplicationPayments( params ); 
+				if ( list ) 
+					throw new Exception('Cannot revert since payments have already been made');  
+			}
 		} 
 	} 
 

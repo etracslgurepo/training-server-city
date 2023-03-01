@@ -11,9 +11,11 @@ class SysFileServiceInterceptor {
 		if ( !res.items ) return; 
 
 		res.items.each{ o-> 
+			def sfiletype = o.filetype;
+			if ( !sfiletype || sfiletype == '*' ) sfiletype = null; 
 
-			def remote_fileid = [ o.fileloc.rootdir, o.objid ].findAll{( it )}.join('/'); 
-			remote_fileid = [ remote_fileid, o.filetype ].findAll{( it )}.join('.');
+			def remote_fileid = [ o.filedir, o.objid ].findAll{( it )}.join('/'); 
+			remote_fileid = [ remote_fileid, sfiletype ].findAll{( it )}.join('.');
 
 			def filelocid = o.fileloc.objid; 
 			if ( !filelocid ) filelocid = o.filelocid; 
@@ -22,6 +24,7 @@ class SysFileServiceInterceptor {
 			conf.setHost( o.fileloc.url ); 
 			conf.setUser( o.fileloc.user.name ); 
 			conf.setPassword( o.fileloc.user.pwd ); 
+			conf.setRootDir( o.fileloc.rootdir ); 
 
 	        def sess = null; 
 	        boolean pass = false; 

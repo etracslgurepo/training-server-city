@@ -29,4 +29,21 @@ DELETE FROM business_application_info WHERE applicationid=$P{applicationid} AND 
 [removeAssessmentInfos]
 DELETE FROM business_application_info WHERE applicationid=$P{applicationid} AND type = 'assessmentinfo'
 
-
+[getInfos]
+select 
+	bai.*, 
+	ifnull((
+		select assessmenttype from business_application_lob 
+		where applicationid = bai.applicationid and lobid = bai.lob_objid 
+		limit 1 
+	), (case 
+		when a.apptype = 'ADDITIONAL' then 'NEW'
+		when a.apptype = 'RETIRELOB' then 'RETIRE'
+		else a.apptype 
+	end)) as assessmenttype, 
+	v.datatype as attribute_datatype 
+from business_application_info bai 
+	inner join business_application a on a.objid = bai.applicationid 
+	left join businessvariable v on v.objid = bai.attribute_objid 
+where bai.applicationid = $P{applicationid} 
+order by bai.activeyear, bai.type, bai.attribute_name 

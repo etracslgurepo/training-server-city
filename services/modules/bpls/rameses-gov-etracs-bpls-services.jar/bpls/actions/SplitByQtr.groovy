@@ -15,6 +15,8 @@ public class SplitByQtr implements RuleActionHandler {
 		def amtpaid = tf.amtpaid;
 		def divisor = NS.round( amount / 4 );
 
+		def facts = [];
+		def groupid = createUUID(); 
 		for( int i=1; i<=4; i++) { 
 			def amt = ((i==4) ? amount : divisor);
 			amount = NS.round(amount-divisor);  
@@ -24,7 +26,6 @@ public class SplitByQtr implements RuleActionHandler {
 			}	
 			def _tf = new BillItem();
 			_tf.objid = tf.objid + "_" + i;
-			_tf.application = tf.application;
 			_tf.acctid = tf.acctid;
 			_tf.type = tf.type;
 			_tf.amount = amt;
@@ -38,11 +39,32 @@ public class SplitByQtr implements RuleActionHandler {
 			_tf.account = tf.account;
 			_tf.lob = tf.lob;
 			_tf.receivableid = tf.receivableid;
-			_tf.paypriority = tf.paypriority+i;
 			_tf.assessmenttype = tf.assessmenttype;
-			request.facts << _tf;
-			drools.insert( _tf );
-			amtpaid = 0;		    
+			_tf.application = tf.application;
+			_tf.paypriority = tf.paypriority+i;
+			_tf.groupid = groupid;
+			_tf.totalav = tf.amount; 
+			facts << _tf; 
+			amtpaid = 0;
 		}
+
+		def qtrs = facts.collect{ it.qtr }.findAll{( it )} 
+		Number minqtr = qtrs.min{( it )} 
+		Number maxqtr = qtrs.max{( it )} 
+		if ( minqtr == null ) minqtr = 0; 
+		if ( maxqtr == null ) maxqtr = 0; 
+
+		facts.each{
+			it.minqtr = minqtr.intValue(); 
+			it.maxqtr = maxqtr.intValue(); 
+			request.facts << it;
+			drools.insert( it );
+			amtpaid = 0;
+		}
+	}
+
+	String createUUID() {
+		def encoder = new com.rameses.util.Encoder.MD5Encoder(); 
+		return encoder.encode( new java.rmi.server.UID().toString()); 
 	}
 }

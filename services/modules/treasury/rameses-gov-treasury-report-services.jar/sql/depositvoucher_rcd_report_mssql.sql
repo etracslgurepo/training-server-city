@@ -66,6 +66,10 @@ from (
 	inner join vw_collectionvoucher_cashreceiptitem ci on ci.collectionvoucherid = cv.objid 
 	inner join fund on (fund.objid = ci.fundid and fund.depositoryfundid = t1.fundid) 
 	inner join fund ff on ff.objid = t1.fundid 
+where (
+	select count(*) from cashreceiptpayment_noncash 
+	where receiptid = ci.receiptid and fund_objid = ci.fundid and reftype = 'eft' 
+) = 0 
 group by ('AF#'+ ci.formno +':'+ ci.collectiontype_name +'-'+ ff.title) 
 order by ('AF#'+ ci.formno +':'+ ci.collectiontype_name +'-'+ ff.title) 
 
@@ -87,6 +91,10 @@ from (
 	inner join vw_collectionvoucher_cashreceiptitem ci on ci.collectionvoucherid = cv.objid 
 	inner join fund on (fund.objid = ci.fundid and fund.depositoryfundid = t1.fundid) 
 	inner join fund ff on ff.objid = t1.fundid 
+where (
+	select count(*) from cashreceiptpayment_noncash 
+	where receiptid = ci.receiptid and fund_objid = ci.fundid and reftype = 'EFT' 
+) = 0 
 group by ('AF#'+ ci.formno +':'+ ci.collectiontype_name +'-'+ ff.title) 
 order by ('AF#'+ ci.formno +':'+ ci.collectiontype_name +'-'+ ff.title) 
 

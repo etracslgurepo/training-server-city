@@ -229,7 +229,26 @@ class BusinessPermitService  {
 
 		perm.apptype = (perm.parentapptype? perm.parentapptype: perm.apptype); 
 		perm.lobnames = perm.lobs*.name.join(","); 
-		perm.payments = em.getPayments(o);
+
+		perm.payments = []; 
+		em.getPayments( o ).each{ pmt-> 
+			if ( pmt.reftype.toString().toLowerCase() == 'cashreceipt_group' ) {
+				def receipts = dynaEm.lookup( pmt.reftype ).getReceipts([ objid: pmt.objid ]); 
+				receipts.sort{ it.receiptno } 
+				receipts.each{ 
+					it.refid = it.objid; 
+					it.refno = it.receiptno; 
+					it.refdate = it.receiptdate; 
+					it.reftype = 'cashreceipt'; 
+					it.group = [ objid: pmt.objid ]; 
+					perm.payments << it; 
+				} 
+			} 
+			else {
+				perm.payments << pmt; 
+			}
+		}
+
 		if ( splitPrinting ) { 
 			perm.payments = perm.payments.findAll{ it.applicationid==o.applicationid } 
 		} 

@@ -1,7 +1,4 @@
 import com.rameses.annotations.*;
-import com.rameses.util.*;
-import java.rmi.server.*;
-import com.rameses.services.extended.*;
 import bpls.facts.*;
 
 public class BusinessApplicationFactBuilder {
@@ -14,13 +11,15 @@ public class BusinessApplicationFactBuilder {
 
 	@ProxyMethod
 	public void build(def app, def facts) {
-		def lobMap = [:];
-		def fapp = new BPApplication(app);
+		def fapp = new BPApplication( app );
 		facts << fapp;
+
 		if( app.business?.address ) {
 			facts << new BusinessLocation( app.business.address );
 		}	
-		if(app.lobs!=null) {
+
+		def lobMap = [:];
+		if ( app.lobs != null ) {
 			app.lobs?.each {
 				//we need to retrieve lob to be absolutely sure.
 				def lobInfo = lobEm.find([ objid: it.lobid ]).first();
@@ -39,23 +38,24 @@ public class BusinessApplicationFactBuilder {
 				lobMap.put( it.lobid, oLOB );
 			}
 		}
-		if(app.infos!=null ) {
+		if ( app.infos != null ) {
 			app.infos?.each {
 				def dtype = it.attribute.datatype;
 				def f = new BusinessInfo(dtype, it.value);
 				f.objid = it.objid;
 				f.name = it.attribute.name;
-				if(it.lob) f.lob = lobMap[ it.lob.objid ];
+				if ( it.lob ) { 
+					f.lob = lobMap[ it.lob.objid ];
+				} 
 				facts << f;
 			}
 		}
 	}
 
-
 	@ProxyMethod
 	public void buildPaymentFacts(def app, def facts) {
 		//for payment routine
-		if(app.billitems) {
+		if ( app.billitems ) {
 			app.billitems.each {
 				def tf = new BillItem();
 				it.each { k,v->
@@ -70,7 +70,5 @@ public class BusinessApplicationFactBuilder {
 				facts << tf;
 			}
 		}
-
 	}
-
 }

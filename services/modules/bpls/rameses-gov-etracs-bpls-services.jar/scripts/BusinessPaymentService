@@ -14,6 +14,8 @@ public class BusinessPaymentService extends ActiveCrudListService {
 	@Service("BusinessTaxCreditService")
 	def taxCreditSvc;
 
+	@DataContext( dynamic=true )
+	def dynaEm;
 
 	public void afterCreate(def o) {
 		o.items.each {
@@ -78,9 +80,27 @@ public class BusinessPaymentService extends ActiveCrudListService {
 
 	@ProxyMethod
 	public def getApplicationPayments(def o) {
-		if(!o.applicationid) 
+		if ( !o.applicationid ) 
 			throw new Exception("applicationid is required in BusinessPaymentService.getApplicationPayments");
-		return  em.getApplicationPayments(o);
+
+		def list = []; 
+		em.getApplicationPayments( o ).each{ pmt-> 
+			if ( pmt.reftype == 'cashreceipt_group' ) {
+				def receipts = dynaEm.lookup( pmt.reftype ).getReceipts([ objid: pmt.objid ]); 
+				receipts.sort{ it.receiptno }.reverse().each{
+					it.refid = it.objid; 
+					it.refno = it.receiptno; 
+					it.refdate = it.receiptdate; 
+					it.reftype = 'cashreceipt'; 
+					it.group = [ objid: pmt.objid ]; 
+					list << it; 
+				}
+			}
+			else {
+				list << pmt; 
+			}
+		}
+		return list; 
 	}
 
 	@ProxyMethod
@@ -130,5 +150,23 @@ public class BusinessPaymentService extends ActiveCrudListService {
 		def m = [ applicationid: payobj.applicationid ]; 
 		em.resetLedgerAmtPaid( m ); 
 		em.resyncLedgerAmtPaid( m ); 
+	} 
+
+	@ProxyMethod 
+	public def findPayment( param ) { 
+		def pmt = em.findPayment([ objid: param.objid ]); 
+		if ( pmt ) { 
+			afterOpen( pmt ); 
+		} 
+		return pmt; 		
+	} 
+
+	@ProxyMethod
+	public def findPaymentByRef( param ) {
+		def pmt = em.findPaymentByRef([ objid: param.objid ]);
+		if ( pmt ) { 
+			afterOpen( pmt ); 
+		} 
+		return pmt; 
 	} 
 } 

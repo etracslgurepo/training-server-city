@@ -1,5 +1,5 @@
 <schema>
-	<element  tablename="sys_fileitem">
+	<element tablename="sys_fileitem">
 		<field name="objid" primary="true" prefix="FILEITM"/>
 		<field name="parentid" required="true" />
 		<field name="caption" required="true" />
@@ -8,8 +8,11 @@
 		<field name="createdby_name" required="true" />
 		<field name="state" required="true" />
 		<field name="remarks" />
-		<field name="filelocid" />
+		<field name="filelocid" required="true"/>
 		<field name="filesize" />
 		<field name="thumbnail" />
+		<field name="filetype" required="true"/>
+		<field name="bytestransferred" />
+		<field name="filedir" />
 	</element>
 </schema>

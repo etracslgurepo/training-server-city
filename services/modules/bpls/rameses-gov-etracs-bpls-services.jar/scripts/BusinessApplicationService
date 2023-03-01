@@ -212,6 +212,14 @@ public class BusinessApplicationService  {
 
 	@ProxyMethod 
 	public def findLastTask( params ) { 
-		return apptaskdb.findLastTask([ refid: params.applicationid ]); 
+		def mm = [ refid: params.applicationid, filter:'' ]; 
+		if ( params.transition?.state ) {
+			mm.filter = " AND state='"+ params.transition.state +"' ";
+		}
+		else if ( params.node?.name ) {
+			mm.filter = " AND state='"+ params.node.name +"' ";
+		}
+		def task = apptaskdb.findLastTask( mm ); 
+		return task; 
 	}
 }

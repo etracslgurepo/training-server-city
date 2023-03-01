@@ -12,21 +12,34 @@ import java.rmi.server.*;
 **********************************************************/
 public class BusinessCashReceiptInterceptor {
 
-	@Service("BusinessPostPaymentService")
-	def pmtSvc;
+	@Service("BusinessPostPaymentService") 
+	def pmtSvc; 
 
-	@After(pattern="CashReceiptService.post", eval="#{result.collectiontype?.handler == 'bpls'}")
-	public void postBusinessPayment(def evt) {
+	// handling of bpls receipts
+	// 
+	@After(pattern="CashReceiptService.post", eval="#{result.collectiontype?.handler == 'bpls'}") 
+	public void postPayment( evt ) { 
 		def a = evt.args[0]; 
 		a.reftype = 'cashreceipt'; 
-		pmtSvc.postPayment( a );
+		pmtSvc.postPayment( a ); 
 	} 
-
-	@After(pattern="CashReceiptVoidService.post",index=0,eval="#{result.receipt.collectiontype.handler=='bpls'}")
-	public void voidTxn( evt ) {
-		//check if permit is already issued.
-		def r = evt.args[0].receipt;
-		pmtSvc.postVoidPayment( r );
+	@After(pattern="MultiCashReceiptService.post", eval="#{args[0].collectiontype?.handler == 'bpls-multi-receipt'}") 
+	public void postPaymentGroup( evt ) { 
+		def param = evt.args[0]; 
+		param.reftype = 'cashreceipt_group'; 
+		pmtSvc.postPayment( param ); 
 	}
-	
+
+	// handling of bpls void receipts
+	// 
+	@After(pattern="CashReceiptVoidService.post", index=0, eval="#{result.receipt.collectiontype?.handler == 'bpls'}") 
+	public void voidPayment( evt ) { 
+		def r = evt.args[0].receipt; 
+		pmtSvc.postVoidPayment( r ); 
+	} 
+	@After(pattern="CashReceiptVoidService.postReceipts", index=0, eval="#{args[0].collectiontype?.handler == 'bpls-multi-receipt'}") 
+	public void voidPayments( evt ) { 
+		def param = evt.args[0]; 
+		pmtSvc.postVoidPayment( param ); 
+	} 
 }

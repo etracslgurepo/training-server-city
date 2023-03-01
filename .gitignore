@@ -10,6 +10,7 @@ _tmp
 /fileserver
 /custom-template
 /bin/env.conf
+/lib/mysql.jar
 /web/resources/downloads/modules/custom
 **/resources/platform/etracs255-platform/**
 zzz-custom

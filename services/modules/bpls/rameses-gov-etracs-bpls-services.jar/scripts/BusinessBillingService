@@ -16,8 +16,11 @@ public class BusinessBillingService  {
 	@ActiveDB("revenueitem")
 	def ba;
 
-	@ActiveDB("business_application")
+	@DataContext("business_application")
 	def appEm;
+
+	@DataContext( dynamic=true )
+	def dynaEm;
 
 	@DataContext("lob")
 	def lobEm;
@@ -48,7 +51,7 @@ public class BusinessBillingService  {
 
 	@ProxyMethod
 	public def generateBilling( def o ) {
-		if(!o.taxfees)
+		if ( !o.taxfees )
 			throw new Exception("Please provide at least one taxfee");
 
 		def facts = [];
@@ -58,7 +61,7 @@ public class BusinessBillingService  {
 		def findLob = { lob, tf ->
 			if(!lobMap.containsKey(lob.objid)) {
 				//store LOBFact
-				def lobInfo = lobEm.find([ objid: lob.objid ]).first();
+				def lobInfo = lobEm.findLOB([ objid: lob.objid ]);
 				if ( !lobInfo )
 					throw new Exception("lob not found for "+lob.objid);
 
@@ -86,10 +89,11 @@ public class BusinessBillingService  {
 		}
 
 		o.taxfees.each {
-			if(it.amtpaid==null) it.amtpaid = 0;
+			if ( it.amtpaid == null ) it.amtpaid = 0;
 			it.amtdue = it.amount - it.amtpaid;
-			def tf = new BillItem(it);
-			if( it.lob?.objid ) {
+
+			def tf = new BillItem( it ); 
+			if ( it.lob?.objid ) { 
 				tf.lob = findLob( it.lob, tf );	
 			}
 			facts << tf;				
@@ -112,48 +116,105 @@ public class BusinessBillingService  {
 			def pmt = new Payment( o.payment );
 			facts << pmt;
 		}
-		if(o.app) {
-			def app = new BPApplication(o.app);
+		if ( o.app ) { 
+			def app = new BPApplication( o.app ); 
 			facts << app;
 
 			if ( o.app.business?.address ) {
 				facts << new BusinessLocation( o.app.business.address );
-			}			
+			} 
+
+			facts.findAll{( it instanceof BillItem )}.each{
+				it.application = app; 
+			} 
+		}
+
+		// load the business infos
+		def appinfos = null; 
+		if ( o.appinfos ) { 
+			appinfos = o.appinfos; 
+		} 
+		else {
+			def appid = o.app?.objid; 
+			if ( appid == null ) { 
+				appid = o.applicationid; 
+			} 
+			if ( appid ) {
+				appinfos = dynaEm.lookup('business_application_info').getInfos([ applicationid: appid ]);
+				appinfos.each{
+					def datatype = it.attribute?.datatype;
+					if ( datatype == 'decimal') it.value = it.decimalvalue; 
+					else if ( datatype == 'integer') it.value = it.intvalue; 
+					else if ( datatype == 'boolean') it.value = it.boolvalue; 
+					else it.value = it.stringvalue; 
+				}
+			}
+		}
+
+		appinfos?.each{ bai-> 
+			def bi = new BusinessInfo( bai.attribute.datatype, bai.value );
+			bi.objid = bai.objid;
+			bi.name = bai.attribute.name;
+			if ( bi.lob?.objid ) { 
+				bi.lob = findLob( bai.lob, bai ); 
+			} 
+			facts << bi; 
 		}
 
 		def qtrdates = [];
 
 		//insert the deadline facts
 		def years = o.taxfees*.year; 
+		if ( years == null ) years = []; 
         if ( o.app?.appyear && o.app.appyear <= currYear ) {
             years << currYear; 
         } 
 		
-		years.unique().each { y->
+		def deadlines = [];
+		years.unique().sort{ it }.each { y->
 			(1..4).each { q->
 				def qtr = new QtrDeadline(y, q);	
-				qtr.deadline = expiryDateSvc.findExpiryDate([ year:y, qtr:q ]);
-				facts << qtr; 
+				qtr.deadline = expiryDateSvc.findExpiryDate([ year: y, qtr: q ]);
 
-				def qtrinfo = [ qtr: q ];
-				if ( o.app?.appyear == currYear ) {
-					qtrinfo.duedate = qtr.deadline;
+				// fetch the next due date
+				if ((q+1) > 4) {
+					qtr.nextdeadline = expiryDateSvc.findExpiryDate([ year: y+1, qtr: 1 ]);
+				} else {
+					qtr.nextdeadline = expiryDateSvc.findExpiryDate([ year: y, qtr: q+1 ]);
 				}
-				qtrdates << qtrinfo;
+
+				// fetch the previous due date
+				if ((q-1) < 1) {
+					qtr.prevdeadline = expiryDateSvc.findExpiryDate([ year: y-1, qtr: 1 ]);
+				} else {
+					qtr.prevdeadline = expiryDateSvc.findExpiryDate([ year: y, qtr: q-1 ]);
+				}
+
+				facts << qtr; 
+				deadlines << qtr; 
+
+				if ( y == o.app?.appyear ) {
+					qtrdates << [ 
+						duedate: qtr.deadline, 
+						yearqtr: qtr.yearqtr,
+						year: qtr.year, 
+						qtr: q 
+					]; 
+				}
 			} 
 		}
 
-		def result = ruleSvc.execute( facts );
-		def annualitems = result.items.findAll{ !it.qtr }
-		def qtritems = result.items.findAll{ it.qtr > 0 }.groupBy{ it.receivableid } 
+		def min_qtrdeadline = deadlines.min{ it.getBeginQtrDate() }
+		def max_qtrdeadline = deadlines.max{ it.getBeginQtrDate() }
+		deadlines.each{ 
+			it.setMinMax( min_qtrdeadline, max_qtrdeadline ); 
+		} 
+		deadlines.clear(); 
 
-		/*
-		println "===================================================="
-		result.items.each { k->
-			println " " + k.account + " " + k.amount + " qtr:" + k.qtr + " partial?"+k.partial; 
-		}
-		*/
-		
+		def result = ruleSvc.execute( facts );
+		def qtritems = result.items.findAll{ it.qtr > 0 }.groupBy{ it.receivableid } 
+		def annualitems = result.items.findAll{( !it.qtr || it.qtr < 0 )}
+
 		def newtaxfees = [];
 		annualitems.each{a-> 
 			def tf = o.taxfees.find{ it.objid==a.receivableid } 
@@ -178,7 +239,15 @@ public class BusinessBillingService  {
 			tf.interestaccount = v[0].interestaccount;
 			newtaxfees << tf; 
 		} 
+		newtaxfees.each{ tf-> 
+			tf.appyear = o.app.appyear; 
+			tf.details.each{ dd-> 
+				dd.appyear = tf.appyear; 
+			}
+		}
+
 		def r = summarizeTotals( newtaxfees ); 
+		newtaxfees = sortTaxFees( newtaxfees ); 
 		return [ 
 			taxfees: newtaxfees, excess: result.excess, totals: r, 
 			expirydate: result.validUntil, nextbilldate: result.validUntil, 
@@ -186,60 +255,167 @@ public class BusinessBillingService  {
 		]; 
 	} 
 
+	def sortTaxFees = { list-> 
+		def years = []; 
+		def results = []; 
+		def groups = list.groupBy{ it.iyear }
+		groups.each{ k,v-> years << k }
+
+		years.sort{ it }
+		years.each{ yr-> 
+			groups[yr].each{ billitem-> 
+				billitem.taxfeetype = billitem.taxfeetype.toString().toUpperCase(); 
+				if ( billitem.taxfeetype == 'TAX' ) {
+					billitem._level = ( billitem.lob?.objid ? 0 : 1 );
+				} 
+				else if ( billitem.taxfeetype == 'REGFEE' ) {
+					billitem._level = ( billitem.lob?.objid ? 10 : 12 );
+					if ( billitem.details ) billitem._level -= 1; 
+				} 
+				else {
+					billitem._level = ( billitem.lob?.objid ? 20 : 22 );
+					if ( billitem.details ) billitem._level -= 1; 
+				}
+			}
+
+			def levels = []; 
+			def groupLevels = groups[yr].groupBy{ it._level }
+			groupLevels.each{ k,v-> levels << k }
+			levels.sort{ it }
+			levels.each{ k-> 
+				results.addAll( groupLevels[k] );
+			}
+		}
+
+		try {
+			return results; 	
+		} 
+		finally {
+			years.clear(); 
+			groups.clear();
+		}
+	}
 
 	@ProxyMethod 
 	public def summarizeTotals( taxfees ) {
-		def r = [tax:0, regfee:0, othercharge:0, total:0, excess:0, q1:0,q2:0,q3:0,q4:0];
-		for (tfi in taxfees) { 
-			r.total += tfi.total;
-			if( tfi.taxfeetype == 'TAX') r.tax += tfi.total;
-			else if( tfi.taxfeetype == 'REGFEE') r.regfee += tfi.total;
-			else if( tfi.taxfeetype == 'OTHERCHARGE') r.othercharge += tfi.total;
+		def r = [:]; 
+		r.tax = r.regfee = r.othercharge = r.total = 0.0; 
+		r.amtq1 = r.amtq2 = r.amtq3 = r.amtq4 = 0.0; 
+		r.q1 = r.q2 = r.q3 = r.q4 = 0;
+		r.excess = r.totaldisc = 0.0; 
+
+		for ( tfi in taxfees ) { 
+			r.total += tfi.total; 
+			if ( tfi.taxfeetype == 'TAX') r.tax += tfi.total; 
+			else if ( tfi.taxfeetype == 'REGFEE') r.regfee += tfi.total; 
+			else if ( tfi.taxfeetype == 'OTHERCHARGE') r.othercharge += tfi.total; 
 
 			if ( tfi.details ) { 
-				def fq1 = tfi.details.findAll{ x->x.qtr <= 1}?.sum{y->y.total };
-				def fq2 = tfi.details.findAll{ x->x.qtr == 2}?.sum{y->y.total };
-				def fq3 = tfi.details.findAll{ x->x.qtr == 3}?.sum{y->y.total };
-				def fq4 = tfi.details.findAll{ x->x.qtr == 4}?.sum{y->y.total };
-				if(fq1!=null) r.q1 += numSvc.round(fq1);
-			    if(fq2!=null) r.q2 += numSvc.round(fq2);
-			    if(fq3!=null) r.q3 += numSvc.round(fq3);
-			    if(fq4!=null) r.q4 += numSvc.round(fq4); 
-			} else {
-				r.q1 += numSvc.round(tfi.total); 
-			}
+				int yearqtr1 = "${tfi.appyear}1".toString().toInteger(); 
+				int yearqtr2 = "${tfi.appyear}2".toString().toInteger(); 
+				int yearqtr3 = "${tfi.appyear}3".toString().toInteger(); 
+				int yearqtr4 = "${tfi.appyear}4".toString().toInteger(); 
+
+				def fq1 = tfi.details.findAll{( it.yearqtr <= yearqtr1 )}.sum{( it.total ? it.total : 0.0 )} 
+				def fq2 = tfi.details.findAll{( it.yearqtr == yearqtr2 )}?.sum{( it.total ? it.total : 0.0 )} 
+				def fq3 = tfi.details.findAll{( it.yearqtr == yearqtr3 )}?.sum{( it.total ? it.total : 0.0 )} 
+				def fq4 = tfi.details.findAll{( it.yearqtr == yearqtr4 )}?.sum{( it.total ? it.total : 0.0 )} 
+
+				if (fq1 != null) r.q1 += numSvc.round(fq1);
+			    if (fq2 != null) r.q2 += numSvc.round(fq2);
+			    if (fq3 != null) r.q3 += numSvc.round(fq3);
+			    if (fq4 != null) r.q4 += numSvc.round(fq4); 
+
+				def sum_no_disc = { ls-> 
+					def num = ls.sum{( it.amount - it.amtpaid ) + it.surcharge + it.interest } 
+					return ( num ? num : 0.0 ); 
+				}
+				fq1 = sum_no_disc( tfi.details.findAll{( it.yearqtr <= yearqtr1 )});
+				fq2 = sum_no_disc( tfi.details.findAll{( it.yearqtr == yearqtr2 )});
+				fq3 = sum_no_disc( tfi.details.findAll{( it.yearqtr == yearqtr3 )});
+				fq4 = sum_no_disc( tfi.details.findAll{( it.yearqtr == yearqtr4 )});
+
+				if (fq1 != null) r.amtq1 += numSvc.round( fq1 );
+			    if (fq2 != null) r.amtq2 += numSvc.round( fq2 );
+			    if (fq3 != null) r.amtq3 += numSvc.round( fq3 );
+			    if (fq4 != null) r.amtq4 += numSvc.round( fq4 );
+
+			    def disc = tfi.details.sum{( it.discount ? it.discount : 0.0 )}
+			    r.totaldisc += (disc ? disc : 0.0);
+			} 
+			else { 
+				r.q1 += numSvc.round( tfi.total ); 
+				r.amtq1 += ((tfi.amount - tfi.amtpaid) + tfi.surcharge + tfi.interest); 
+				r.totaldisc += (tfi.discount ? tfi.discount : 0.0); 
+			} 
 		} 
 		return r; 
 	} 
 
+	def buildBPApp( param ) {
+		if ( param._loaded.toString() == 'true' ) return param; 
+
+		def app = appEm.find([ objid: param.objid ]).first(); 
+		if ( app ) {
+			if ( !param.objid ) param.objid = app.objid; 
+			if ( !param.appyear ) param.appyear = app.appyear; 
+			if ( !param.apptype ) param.apptype = app.apptype; 
+			if ( !param.appno ) param.appno = app.appno; 
+			if ( !param.txnmode ) param.txnmode = app.txnmode; 
+			if ( !param.dtfiled ) param.dtfiled = app.dtfiled; 
+
+			if ( app.business ) { 
+				if ( !param.orgtype ) param.orgtype = app.business.orgtype; 
+				if ( !param.purpose ) param.purpose = app.business.purpose; 
+				if ( !param.officetype ) param.officetype = app.business.officetype; 
+				if ( !param.permittype ) param.permittype = app.business.permittype; 
+				if ( !param.yearstarted ) param.yearstarted = app.business.yearstarted; 
+			}
+		}
+		return param;
+	}
 
 	@ProxyMethod
 	public def getBillingForPayment( def o ) {
-		if(!o.taxfees ) {
-			throw new Exception("we retrieve payment here appid is "+o.applicationid);
+		if ( !o.taxfees ) {
+			throw new Exception("we retrieve payment here appid is "+ o.applicationid);
 		}
 
-		//generate first the billing
-		if(!o.payment) throw new Exception("Please include a payment object");
-
-		if ( !o.app && o.applicationid ) {
-			// load application
-			def aa = appEm.read([ objid: o.applicationid ]);
-			o.app = [ apptype: aa.apptype, appyear: aa.appyear, dtfiled: aa.dtfiled, appno: aa.appno ]; 
+		if ( !o.payment ) {
+			// generate first the billing
+			throw new Exception("Please include a payment object");
 		}
+
+		if ( o.app == null ) o.app = [:]; 
+		if ( o.app.objid == null ) {
+			o.app.objid = o.applicationid; 
+		}
+		buildBPApp( o.app ); 
 		
-		def result = generateBilling(o);
+		def result = generateBilling( o );
 		def receiptItems = [];	
 
 		def ext = [:]
 		for (tfi in result.taxfees) { 
 	        def p = [ item: tfi.account, amount: tfi.amtdue-tfi.discount, type: 'basic', receivableid:tfi.receivableid];
-	        p.remarks = (tfi.lob?.name) ? tfi.lob.name: '';
-	        p.indexno = (tfi.sortorder? tfi.sortorder: 0); 
-			if(tfi.details) {
-				p.remarks += ", QTR PAID:" + tfi.details*.qtr.join(",");
-	        	def partial = tfi.details.find{it.partial==true};
-	        	if( partial ) p.remarks += " (P)";
+	        p.remarks = (tfi.lob?.name ? tfi.lob.name : '');
+	        p.indexno = (tfi.sortorder ? tfi.sortorder: 0); 
+			if ( tfi.details ) { 
+				if ( p.remarks ) p.remarks += ', ';
+				if ( tfi.iyear != tfi.appyear ) { 
+					p.remarks += ( "("+ tfi.iyear.toString() +") " );  
+				}
+
+				p.remarks += ( "QTR PAID:" + tfi.details*.qtr.join(",") ); 
+
+	        	def partial = tfi.details.find{ it.partial == true } 
+	        	if ( partial ) p.remarks += " (P)";
+			} 
+			else {
+				if ( tfi.iyear != tfi.appyear ) { 
+					if ( p.remarks ) p.remarks += ', '; 
+					p.remarks += ( "("+ tfi.iyear.toString() +") " );  
+				}
 			}
 			receiptItems << p;
 		}
@@ -271,16 +447,11 @@ public class BusinessBillingService  {
 		return result;
 	}
 
-
-	/*display all if assessment, display only paid for the rest. do not remove this
-	if( !o.show_paid ) {
-		o.taxfees = o.taxfees.findAll{ it.total > 0 };
-	}*/
-
-
 	@ProxyMethod 
 	public def getBilling( o ) {
-		def e =  appEm.read([ objid: o.applicationid ]);
+		def e = appEm.find([ objid: o.applicationid ]).first();
+		if ( e ) e._loaded = true; 
+
 		def items = receivableSvc.getReceivables([ applicationid: o.applicationid ]);
         if ( !items ) { 
         	if ( !o._silent.toString().matches('true|1')) {
@@ -288,18 +459,17 @@ public class BusinessBillingService  {
         	}
         } 
 
-        if ( !o.billdate ) o.billdate = dateSvc.getBasicServerDate();
-        
-        def p = [:];
+        if ( !o.billdate ) { 
+        	o.billdate = dateSvc.getBasicServerDate();
+        } 
+
+        def p = [ app: e ];
         p.applicationid = e.objid;
         p.billdate = o.billdate; 
         p.taxfees = items; 
         p.show_paid = true; 
-        p.app = [ apptype:e.apptype, appyear:e.appyear, dtfiled:e.dtfiled, appno:e.appno ]; 
         def result = generateBilling( p ); 
-
-        def billing = [:];
-        billing.taxfees = result.taxfees;
+        def billing = [ taxfees: result.taxfees ];
         def billitems = [];
         billing.taxfees.each {
             if( it.details ) {
@@ -314,7 +484,7 @@ public class BusinessBillingService  {
         //sort the result
         e.items = billitems.sort{ 
         	(it.taxfeetype == 'TAX') ? 1 : ((it.taxfeetype== 'REGFEE') ? 2: 3)  
-        };
+        } 
         e.barcode = "51005:"+ e.appno;
         e.expirydate = result.expirydate;
         e.qtrdates = result.qtrdates; 

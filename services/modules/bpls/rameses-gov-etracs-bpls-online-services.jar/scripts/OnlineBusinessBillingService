@@ -54,19 +54,22 @@ class OnlineBusinessBillingService {
 			throw new Exception("Application is not in payment state");
 		}
 
-		def r = [:];
-    	r.app = [apptype:app.apptype, appyear:app.appyear, dtfiled:app.dtfiled, appno:app.appno]; 
-    	r.billdate = (o.billdate ? o.billdate : dateSvc.getBasicServerDate()); 
-    	r.applicationid = app.objid;
+		// This is to inform the BillingService not to refetch the app record
+		// because all information needed for the billing is completely loaded
+		app._loaded = true; 
+
+		def bill_param = [ app: app,  applicationid: app.objid ]; 
+    	bill_param.billdate = ( o.billdate ? o.billdate : dateSvc.getBasicServerDate()); 
+    	bill_param.payment = [ option: 'FULLYEAR', year: app.appyear ]; 
         if ( o.qtr ) {
-        	r.payment = [option:'FULLQTR', qtr: o.qtr.toInteger() ]		
-        }	
-        else {
-        	r.payment = [option: 'FULLYEAR' ];
-        }
-		def z = svc.getBillingForPayment( r ); 
+        	bill_param.payment.option = 'FULLQTR'; 
+        	bill_param.payment.qtr = o.qtr.toInteger(); 
+        } 
+
+		def z = svc.getBillingForPayment( bill_param ); 
+
 		z.app = app;
-		z.payment = r.payment;
+		z.payment = bill_param.payment;
         z.amount = numSvc.round( z.totals.total );
 		return z;
 	}

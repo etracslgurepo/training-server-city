@@ -1,8 +1,7 @@
 package bpls.facts;
 
-import java.text.SimpleDateFormat;
-import java.util.*;
 import com.rameses.util.*;
+import java.util.*;
 
 public class BPApplication {
     
@@ -24,42 +23,41 @@ public class BPApplication {
 
     int lastqtrpaid;
 
-    //for removal...
-    //String officetype;
-    //String barangayid;
-
     /** Creates a new instance of BPApplication */
     public BPApplication() {
     }
 
-    public BPApplication(int yr) {
+    public BPApplication( int yr ) {
         this.appyear = appyear;
     }
      
-    public BPApplication( def app ) {
-        //correct dtfiled as date applied
-        if(app.dtfiled) app.dateapplied = app.dtfiled;
+    public BPApplication( Map app ) {
+        if ( !app.appyear ) { 
+            throw new Exception("BPApplication Fact error. Please provide an app.appyear");
+        }
+        if ( app.dtfiled ) {
+            app.dateapplied = app.dtfiled; 
+        }
 
         objid = app.objid;
         appno = app.appno;
-        if(!app.appyear) 
-            throw new Exception("BPApplication Fact error. Please provide an app.appyear");
         appyear = app.appyear;
-        if(app.yearstarted) {
+
+        if ( app.yearstarted ) {
             this.yearstarted = app.yearstarted;
         }   
-        if(app.dateapplied) {
-            if(!(app.dateapplied instanceof Date)) {
-                try {
-                    SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-                    this.dateapplied = df.parse( app.dateapplied );
-                }
-                catch(Exception ign){
-                    println "ERROR !" + ign.message;
-                }
-            }    
-            else {
-                this.dateapplied = app.dateapplied;
+
+        if ( app.dateapplied instanceof Date ) {
+            this.dateapplied = app.dateapplied; 
+        } 
+        else if ( app.dateapplied ) { 
+            try {
+                def df = new java.text.SimpleDateFormat("yyyy-MM-dd");
+                def date_obj = df.parse( app.dateapplied.toString());
+                this.dateapplied = new java.sql.Date( date_obj.time ); 
+            }
+            catch(Throwable t){
+                println "ERROR !" + t.message;
             }
         }
         else {
@@ -78,9 +76,9 @@ public class BPApplication {
         permittype = app.business?.permittype;
         officetype = app.business?.officetype;
 
-        if(app.lastqtrpaid==null) app.lastqtrpaid = 0;
+        if ( app.lastqtrpaid == null) { 
+            app.lastqtrpaid = 0; 
+        } 
         lastqtrpaid = app.lastqtrpaid;
     }
-
-    
 }

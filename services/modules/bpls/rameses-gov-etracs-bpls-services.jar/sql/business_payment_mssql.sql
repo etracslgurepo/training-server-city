@@ -1,5 +1,6 @@
 [getList]
-SELECT * FROM business_payment WHERE businessid=$P{objid} 
+SELECT * FROM business_payment 
+WHERE businessid=$P{objid} 
 ORDER BY refdate DESC
 
 [getItems]
@@ -8,7 +9,7 @@ SELECT * FROM business_payment_item WHERE parentid=$P{objid}
 [getApplicationPayments]
 SELECT * FROM business_payment 
 WHERE applicationid=$P{applicationid} AND voided=0 
-ORDER BY refdate 
+ORDER BY refdate desc, refno desc
 
 [updateReceivables]
 update r set 
@@ -86,3 +87,22 @@ update
 	)tmp 
 set br.amtpaid = tmp.amtpaid 
 where br.objid=tmp.receivableid 
+
+
+[findPayment]
+select * 
+from business_payment 
+where objid = $P{objid} 
+
+[findPaymentByRef]
+select * 
+from business_payment 
+where refid = $P{refid} 
+
+[getReceiptPayments]
+select p.* 
+from business_payment p 
+where p.applicationid = $P{applicationid} 
+	and p.reftype like 'cashreceipt%'
+	and p.voided = 0 
+order by p.refdate, p.refno 

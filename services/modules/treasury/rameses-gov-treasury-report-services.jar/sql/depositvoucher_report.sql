@@ -10,6 +10,10 @@ from depositvoucher_fund dvf
 	inner join fund on (fund.objid = ci.fundid and fund.depositoryfundid = dvf.fundid) 
 where dvf.parentid = $P{depositvoucherid} 
 	and dvf.fundid like $P{fundid} 
+	and (
+		select count(*) from cashreceiptpayment_noncash 
+		where receiptid = ci.receiptid and fund_objid = ci.fundid and reftype = 'EFT' 
+	) = 0 
 group by 
 	ci.controlid, ci.series, ci.formno, ci.receiptno, ci.receiptdate, 
 	ci.paidby, ci.acctid, ci.acctname, convert(ci.remarks, char(255)) 
@@ -31,5 +35,9 @@ from depositvoucher_fund dvf
 	inner join fundgroup fg on fg.objid = ff.groupid 
 where dvf.parentid = $P{depositvoucherid} 
 	and dvf.fundid like $P{fundid} 
+	and (
+		select count(*) from cashreceiptpayment_noncash 
+		where receiptid = ci.receiptid and fund_objid = ci.fundid and reftype = 'EFT' 
+	) = 0 
 group by fg.indexno, ff.code, ff.objid, ff.title, ci.acctid, ci.acctcode, ci.acctname 
 order by fg.indexno, ff.title, ci.acctcode, ci.acctname 

@@ -18,10 +18,10 @@ class MultiCashReceiptService {
 	def cashReceiptSvc; 
 	
 	@Service('DateService')
-	def dateSvc; 
+	def dateSvc;  
 	
 	@Service("Var")
-	def var;	
+	def var; 
 
 
 	@ProxyMethod 
@@ -43,24 +43,26 @@ class MultiCashReceiptService {
 			} 
 		}
 
-		def groupid = entity.objid; 
-		cashreceipt_group_db.create([
-			objid: groupid, 
+		def group = [
+			objid: entity.objid, 
 			txndate: rundate, 
 			controlid: entity.controlid, 
 			amount: entity.amount, 
 			totalcash: entity.totalcash, 
 			totalnoncash: entity.totalnoncash, 
 			cashchange: entity.cashchange
-		]); 
+		]; 
+		cashreceipt_group_db.create( group ); 
+		entity.group = group;
 
 		receipts.each { 
 			def c = cashReceiptSvc.post( it ); 
 			if ( c ) it.putAll( c ); 
 			 
-			cashreceipt_groupitem_db.create([ objid: it.objid, parentid: groupid ]);  
+			cashreceipt_groupitem_db.create([ objid: it.objid, parentid: group.objid ]);  
 			it._options = varopts; 
 		} 
+
 		return receipts;
 	}
 }

@@ -8,6 +8,9 @@ class CashReceiptVoidService  {
 	@PersistenceContext("main")
 	def em;
 
+	@DataContext( dynamic=true ) 
+	def dynaEm;
+
 	@DataContext('cashreceipt') 
 	def cashreceipt_db;
 
@@ -43,6 +46,40 @@ class CashReceiptVoidService  {
 
 	@Service("ActionPermissionService")
 	def actionPermissionSvc;
+
+
+	@ProxyMethod
+	public void postReceipts( param ) { 
+		if ( !param.receipts ) throw new Exception('receipts parameter is required'); 
+
+		param.remove('receipt'); 
+
+		def receiptid = param.receipts.first().objid; 
+		def groupitem = dynaEm.lookup('cashreceipt_groupitem').find([ objid: receiptid ]).first(); 
+		def groupid = groupitem?.parentid; 
+		def group = ( groupid ? [objid : groupid] : null ); 
+
+		def results = []; 
+		def receipts = param.remove('receipts'); 
+		receipts.each{ 
+			def rct = cashreceipt_db.find([ objid: it.objid ]).first(); 
+			if ( rct ) { 
+				rct.group = group; 
+				results << rct; 
+			}
+		} 
+
+		results.each{ 
+			def voidrct = [:]; 
+			voidrct.putAll( param ); 
+			voidrct.receipt = it; 
+			voidrct.objid = it.objid; 
+			self.post( voidrct );  
+		} 
+
+		param.collectiontype = results.first().collectiontype; 
+		param.group = group; 
+	} 
 
 	@ProxyMethod
 	public def post( def p ) { 
@@ -145,23 +182,4 @@ class CashReceiptVoidService  {
 		v.remarks = params.reason;
 		txnlog.create( v );  
 	}
-
-	@ProxyMethod
-	public def postReceipts( param ) { 
-		if ( !param.receipts ) throw new Exception('receipts parameter is required'); 
-
-		param.remove('receipt'); 
-
-		def receipts = param.remove('receipts'); 
-		receipts.each{ 
-			def rct = cashreceipt_db.find([ objid: it.objid ]).first(); 
-			if ( !rct ) return; 
-
-			def voidrct = [:]; 
-			voidrct.putAll( param ); 
-			voidrct.receipt = rct; 
-			voidrct.objid = rct.objid; 
-			self.post( voidrct );  
-		} 
-	} 
 }

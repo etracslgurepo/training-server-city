@@ -34,7 +34,12 @@ public class BillItem {
     double fullamtdue;
     String assessmenttype;
 
-    
+    int minqtr;
+    int maxqtr;
+    String groupid;
+    double totalav;
+
+
     /** Creates a new instance of BillItem */
     public BillItem() {
     }
@@ -50,23 +55,55 @@ public class BillItem {
         this.total = this.amtdue;
         this.account = map.account;
         this.receivableid = map.objid;
-        this.qtr = 0;
+        this.qtr = this.minqtr = this.maxqtr = 0;
         if(map.year) this.year = map.year;
         if(map.iyear) this.year = map.iyear;
         this.type = map.taxfeetype;
         this.assessmenttype = map.assessmenttype;
-        if(this.type == "TAX") {
-            this.paypriority = 30 + this.qtr;
+        this.totalav = this.amount;
+        setApplication( null ); 
+    }
+
+    public void setApplication( BPApplication app ) {
+        this.application = app;
+        def appyear = app?.appyear; 
+        if ( appyear == null ) appyear = this.year; 
+        
+        if ( this.type == "TAX" ) {
+            this.paypriority = 30 + getYearqtr(); 
             this.sortorder = 1;
         }
-        else if(this.type == "REGFEE") {
-            this.paypriority = 20 + this.qtr;
+        else if ( this.type == "REGFEE" && this.qtr > 0 ) {
+            this.paypriority = 30 + getYearqtr(); 
+            this.sortorder = 1;
+        } 
+        else if ( this.type == "REGFEE" ) {
+            this.paypriority = 20 + getYearqtr(); 
             this.sortorder = 2;
         }
-        else {
-            this.paypriority = 10+this.qtr;
-            this.sortorder = 3;
-        }   
+        else { 
+            this.paypriority = 10 + getYearqtr(); 
+            this.sortorder = 3; 
+        } 
+
+        if ( this.year < appyear ) {
+            if ( this.type == "TAX" ) { 
+                this.paypriority = 29 + getYearqtr(); 
+                this.sortorder = 4; 
+            } 
+            else if ( this.type == "REGFEE" && this.qtr > 0 ) { 
+                this.paypriority = 29 + getYearqtr(); 
+                this.sortorder = 4; 
+            } 
+            else if ( this.type == "REGFEE" ) { 
+                this.paypriority = 19 + getYearqtr(); 
+                this.sortorder = 5; 
+            } 
+            else { 
+                this.paypriority = 9 + getYearqtr(); 
+                this.sortorder = 6; 
+            } 
+        }
     }
 
     public Date getFirstdateofyear() {
@@ -75,10 +112,26 @@ public class BillItem {
         return cal.getTime();
     }
 
+    public boolean getFirstItem() {
+        return ( this.minqtr == 0 || this.minqtr == this.qtr ); 
+    }
+    public boolean getLastItem() {
+        return ( this.maxqtr == 0 || this.maxqtr == this.qtr ); 
+    }
+    public String getGroupid() {
+        return this.groupid; 
+    }
+    public int getYearqtr() {
+        return "${year}${qtr}".toString().toInteger();
+    }
+
     public def toItem() {
-        def item = [:];    
+        def item = [:]; 
+        item.yearqtr = getYearqtr();
         item.year = this.year;
         item.qtr = this.qtr;
+        item.minqtr = this.minqtr;
+        item.maxqtr = this.maxqtr;
         if( this.lob ) {
             item.lob = [objid: this.lob.objid, name:this.lob.name, assessmenttype: this.lob.assessmenttype ]; 
         }
@@ -89,11 +142,11 @@ public class BillItem {
         item.interest = this.interest;
         item.discount = this.discount;
         item.total = this.total;
-        item.paypriority = (this.qtr*10) + (this.paypriority);
+        item.paypriority = this.paypriority;
 
         def _qtr = this.qtr;
-        if(_qtr == 0) _qtr = 5;
-        item.sortorder = (_qtr*10)+(this.sortorder);
+        if ( _qtr == 0 ) _qtr = 5;
+        item.sortorder = item.yearqtr + this.sortorder;
         item.duedate = this.deadline;
         item.balance = this.balance;
         item.receivableid = this.receivableid;
@@ -103,7 +156,6 @@ public class BillItem {
         item.interestaccount = this.interestaccount;
         item.surchargeaccount = this.surchargeaccount;
         item.assessmenttype = this.assessmenttype;
-
         return item;
     }
 
@@ -118,24 +170,27 @@ public class BillItem {
     }
 
     public void printInfo() {
-        println "-------------------------"
-        println "amtpaid " + this.amtpaid;
-        println "acctid " + this.acctid;
-        println "amount " + this.amount;
-        println "LOB " + this.lob;
-        println "amtpaid " + this.amtpaid;
-        println "amtdue " + this.amtdue;
-        println "total " + this.total;
-        println "account " + this.account;
-        //x.objid is the receivable id.
-        println "receivableid " +  this.receivableid;
-        println "qtr " +  this.qtr;
-        println "year " +  this.year;
-        println "type " + this.type;
-        println "paypriority " + this.paypriority;
-        println "assessmenttype " + this.assessmenttype;
-
+        def buff = new StringBuilder();
+        buff.append("\n\n"); 
+        buff.append("=== BillItem.printInfo ==="); 
+        buff.append(">> amtpaid: " + this.amtpaid);
+        buff.append(">> acctid: " + this.acctid);
+        buff.append(">> amount: " + this.amount);
+        buff.append(">> LOB: " + this.lob);
+        buff.append(">> amtpaid: " + this.amtpaid);
+        buff.append(">> amtdue: " + this.amtdue);
+        buff.append(">> total: " + this.total);
+        buff.append(">> account: " + this.account);
+        buff.append(">> receivableid: " +  this.receivableid);
+        buff.append(">> yearqtr: " +  getYearqtr());
+        buff.append(">> year: " +  this.year);
+        buff.append(">> qtr: " +  this.qtr);
+        buff.append(">> type: " + this.type);
+        buff.append(">> paypriority: " + this.paypriority);
+        buff.append(">> assessmenttype: " + this.assessmenttype);
+        buff.append(">> minqtr: " +  this.minqtr);
+        buff.append(">> maxqtr: " +  this.maxqtr);
+        buff.append("\n\n");
+        println buff.toString();
     }
-
-
 }

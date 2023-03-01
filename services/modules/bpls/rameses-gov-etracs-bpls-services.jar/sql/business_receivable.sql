@@ -12,90 +12,120 @@ WHERE ${filter} AND ((br.amount-br.amtpaid) > 0)
 ORDER BY br.iyear DESC, br.lob_name DESC, r.code ASC
 
 [getAllReceivables]
-SELECT br.*, 
-  r.code AS account_code, 
-  br.taxfeetype AS account_taxfeetype, 
-  case 
-    when br.amount <> br.amtpaid then br.amount-br.amtpaid else 0.0 
-  end as total, 
-  case 
-    when br.amount <> br.amtpaid then br.amount-br.amtpaid else 0.0 
-  end as balance, 
-  app.appno, br.iyear AS year
-FROM business_receivable br 
-  LEFT JOIN itemaccount r ON r.objid=br.account_objid 
-  LEFT JOIN business_application app ON app.objid=br.applicationid
-WHERE ${filter}  
-ORDER BY br.lob_name DESC, r.code ASC
+select * 
+from ( 
+  select 
+    br.*, ia.`code` as account_code, br.taxfeetype AS account_taxfeetype, 
+    (case when (br.amount-br.amtpaid) > 0 then br.amount-br.amtpaid else 0.0 end) as total, 
+    (case when (br.amount-br.amtpaid) > 0 then br.amount-br.amtpaid else 0.0 end) as balance, 
+    app.appno, br.iyear as `year`, 
+    (case 
+      when br.taxfeetype = 'TAX' then 0
+      when br.taxfeetype = 'REGFEE' then 1
+      when br.taxfeetype = 'OTHERCHARGE' then 2 else 3 
+    end) as taxfeegroupidx, 
+    (case when br.lob_objid is null then 1 else 0 end) as lobgroupidx  
+  from business_receivable br 
+    left join itemaccount ia on ia.objid = br.account_objid 
+    left join business_application app on app.objid = br.applicationid 
+  where ${filter} 
+)t0 
+order by lobgroupidx, iyear desc, taxfeegroupidx, lob_name, account_title  
 
 [getReceivablePayments]
-SELECT bp.refno, bp.refdate, bi.amount, bi.surcharge, bi.interest, bi.qtr, bi.partial 
-FROM business_payment_item bi
-INNER JOIN business_payment bp ON bi.parentid=bp.objid
-WHERE bi.receivableid=$P{receivableid}
-ORDER BY bp.refdate DESC
-
+select 
+  bp.objid as paymentid, bp.refid, bp.refdate, 
+  bp.refno, bp.reftype, sum(bi.amount) as amount
+from business_payment_item bi
+  inner join business_payment bp on (bp.objid = bi.parentid and bp.voided = 0)
+where bi.receivableid = $P{receivableid} 
+group by bp.objid, bp.refid, bp.refdate, bp.refno, bp.reftype
+order by bp.refdate desc, bp.refno desc 
 
 [getAssessmentTaxFees]
-SELECT a.* 
-FROM (
-   SELECT br.*, 
-      bl.assessmenttype AS lob_assessmenttype,
-      ri.code AS account_code, br.objid AS receivableid,
-      CASE (br.taxfeetype) 
-         WHEN 'TAX' THEN 'Business Tax'
-         WHEN 'REGFEE' THEN 'Regulatory Fee'
-         ELSE 'Other Charge'
-      END AS taxfeetypename,  
-      CASE 
+select t0.* 
+from (
+   select 
+    br.*, ia.`code` AS account_code, br.objid AS receivableid, 
+      (
+         select assessmenttype from business_application_lob 
+         where applicationid = br.applicationid 
+            and lobid = br.lob_objid 
+         limit 1 
+      ) as lob_assessmenttype, 
+      (case 
+        when br.taxfeetype = 'TAX' then 'Business Tax'
+        when br.taxfeetype = 'REGFEE' then 'Regulatory Fee'
+        when br.taxfeetype = 'OTHERCHARGE' then 'Other Charge' 
+        else 'Others'
+      end) as taxfeetypename, 
+      (case 
          WHEN (br.taxfeetype='TAX' AND NOT(br.lob_objid IS NULL) ) THEN 0
          WHEN (br.taxfeetype='TAX' AND br.lob_objid IS NULL ) THEN 1
          WHEN (br.taxfeetype='REGFEE' AND NOT(br.lob_objid IS NULL) ) THEN 2
          WHEN (br.taxfeetype='REGFEE' AND br.lob_objid IS NULL ) THEN 3
          ELSE 4
-      END AS sortorder, 
-      case 
-        when br.amount <> br.amtpaid then br.amount-br.amtpaid else 0.0 
-      end as amtdue,       
-      br.iyear AS `year` 
-   FROM business_receivable br
-      LEFT JOIN business_application ba ON ba.objid=br.applicationid
-      LEFT JOIN business_application_lob bl ON bl.applicationid=br.applicationid AND br.lob_objid=bl.lobid
-      LEFT JOIN itemaccount ri ON ri.objid=br.account_objid
-   WHERE ${filter}
-) a 
-ORDER BY a.sortorder
+      end) AS sortorder, 
+      (case when (br.amount-br.amtpaid) > 0 then (br.amount-br.amtpaid) else 0.0 end) as amtdue, 
+      br.iyear AS `year`, 
+      (case 
+         when br.taxfeetype = 'TAX' then 0
+         when br.taxfeetype = 'REGFEE' then 1
+         when br.taxfeetype = 'OTHERCHARGE' then 2 else 3 
+      end) as taxfeegroupidx, 
+      (case when br.lob_objid is null then 1 else 0 end) as lobgroupidx  
+   from business_receivable br 
+      inner join business_application ba on ba.objid = br.applicationid 
+      inner join business b on b.objid = ba.business_objid 
+      left join itemaccount ia on ia.objid = br.account_objid 
+   where ${filter} 
+)t0 
+order by taxfeegroupidx, iyear, lobgroupidx, lob_name, account_title  
+
 
 #########################################
 # used by BusinessCashReceiptService
 #########################################
 [getBilling]
-SELECT a.* 
-FROM ( 
-   SELECT br.*, ba.apptype, ba.appno, ba.appyear, 
-      bl.assessmenttype AS lob_assessmenttype,
-      ri.code AS account_code, br.objid AS receivableid,
-      CASE (br.taxfeetype) 
-         WHEN 'TAX' THEN 'Business Tax'
-         WHEN 'REGFEE' THEN 'Regulatory Fee'
-         ELSE 'Other Charge'
-      END AS taxfeetypename,  
-      CASE 
+select t0.* 
+from ( 
+   select 
+      br.*, ba.apptype, ba.appno, ba.appyear, br.objid AS receivableid, 
+      (
+         select assessmenttype from business_application_lob 
+         where applicationid = br.applicationid 
+            and lobid = br.lob_objid 
+         limit 1 
+      ) as lob_assessmenttype, 
+      ia.`code` AS account_code, 
+      (case 
+         when br.taxfeetype = 'TAX' then 'Business Tax'
+         when br.taxfeetype = 'REGFEE' then 'Regulatory Fee'
+         when br.taxfeetype = 'OTHERCHARGE' then 'Other Charge' 
+         else 'Others'
+      end) as taxfeetypename, 
+      (case 
          WHEN (br.taxfeetype='TAX' AND NOT(br.lob_objid IS NULL) ) THEN 0
          WHEN (br.taxfeetype='TAX' AND br.lob_objid IS NULL ) THEN 1
          WHEN (br.taxfeetype='REGFEE' AND NOT(br.lob_objid IS NULL) ) THEN 2
          WHEN (br.taxfeetype='REGFEE' AND br.lob_objid IS NULL ) THEN 3
          ELSE 4
-      END AS sortorder, 
-      br.iyear AS `year`
-   FROM business_receivable br
-      LEFT JOIN business_application ba ON ba.objid=br.applicationid
-      LEFT JOIN business_application_lob bl ON bl.applicationid=br.applicationid AND br.lob_objid=bl.lobid
-      LEFT JOIN itemaccount ri ON ri.objid=br.account_objid
-   WHERE  ${filter} 
-      AND (br.amount-br.amtpaid) > 0  
-) a 
-ORDER BY a.sortorder
+      end) AS sortorder, 
+      br.iyear AS `year`, 
+      (case 
+         when br.taxfeetype = 'TAX' then 0
+         when br.taxfeetype = 'REGFEE' then 1
+         when br.taxfeetype = 'OTHERCHARGE' then 2 else 3 
+      end) as taxfeegroupidx, 
+      (case when br.lob_objid is null then 1 else 0 end) as lobgroupidx       
+   from business_receivable br
+      inner join business_application ba on ba.objid = br.applicationid 
+      inner join business b on b.objid = ba.business_objid 
+      left join itemaccount ia on ia.objid = br.account_objid 
+   where ${filter} 
+      and (br.amount - br.amtpaid) > 0 
+)t0 
+order by taxfeegroupidx, iyear, lobgroupidx, lob_name, account_title
 
 [removeReceivables]
 DELETE FROM business_receivable WHERE applicationid=$P{applicationid}
@@ -115,10 +145,22 @@ WHERE receivableid IN (
 ) 
 
 [findHasPaidReceivable]
-SELECT COUNT(*) AS counter 
-FROM business_receivable 
-WHERE applicationid=$P{applicationid} 
-  AND amtpaid > 0
+select count(*) as counter  
+from ( 
+  select r.objid, r.applicationid, 
+    (
+      select distinct 1 
+      from business_payment p 
+        inner join business_payment_item bpi on bpi.parentid = p.objid 
+      where p.applicationid = r.applicationid 
+        and bpi.receivableid = r.objid 
+        and p.voided = 0 
+    ) as paid  
+  from business_receivable r 
+  where r.applicationid = $P{applicationid} 
+    and r.amtpaid > 0
+)t1  
+where t1.paid is not null 
 
 [updateReceivable]
 UPDATE business_receivable SET amtpaid = amtpaid + $P{amount} WHERE objid = $P{receivableid}

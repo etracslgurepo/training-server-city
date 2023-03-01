@@ -6,6 +6,6 @@
 		<field name="amount" required="true" type="decimal" caption="Amount"/>
 		<field name="totalcash" required="true" type="decimal" caption="Total Cash"/>
 		<field name="totalnoncash" required="true" type="decimal" caption="Total Noncash"/>
-		<field name="cashchange" required="true" />
+		<field name="cashchange" required="true" /> 
 	</element>	
 </schema>

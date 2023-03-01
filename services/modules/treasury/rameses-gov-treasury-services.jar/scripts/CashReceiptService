@@ -109,7 +109,15 @@ class CashReceiptService  {
 
 		if( p.checks ) {
 			p.checks.each {
-				checkPayment.create( it );	
+				if ( it.split.toString() == '1' ) {
+					def cchk = checkPayment.find([ objid: it.objid ]).first(); 
+					if ( cchk == null ) { 
+						cchk = checkPayment.create( it ); 
+					}
+				} 
+				else {
+					checkPayment.create( it );	
+				}
 			}
 		}
 

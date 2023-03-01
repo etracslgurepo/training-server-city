@@ -13,13 +13,14 @@ rule "set-deadline"
 	no-loop
 	when
 		BillDate( $date: date )
-		QtrDeadline( $qtr:qtr, $deadline: deadline!=null)
-		TF: BillItem( qtr == $qtr )
+		QtrDeadline( $yearqtr: yearqtr, $deadline: deadline!=null)
+		TF: BillItem( yearqtr == $yearqtr )
 	then
 		TF.setDeadline( $deadline );
 		if( $date.after($deadline) ) {
 			TF.setExpired(true);
 		}
+		TF.printInfo();
 end
 
 rule "set-deadline-year"
@@ -28,8 +29,8 @@ rule "set-deadline-year"
 	no-loop
 	when
 		BillDate( $date: date )
-		QtrDeadline( $qtr:qtr == 1, $deadline: deadline)
-		TF: BillItem( qtr == 0 )
+		QtrDeadline( $year: year, qtr == 1, $deadline: deadline)
+		TF: BillItem( year == $year, qtr == 0 )
 	then
 		TF.setDeadline( $deadline );
 		if( $date.after($deadline) ) {
@@ -64,8 +65,8 @@ end
 rule "distribute-qtr-payment"
 	agenda-group "apply-payment"
 	when
-		Payment( option == "FULLQTR", $qtr: qtr )
-		TF: BillItem( $p: paypriority, qtr <= $qtr )
+		Payment( option == "FULLQTR", $yearqtr: yearqtr )
+		TF: BillItem( $p: paypriority, yearqtr <= $yearqtr )
 	then
 		action.execute( "collect_item", TF, drools );
 		retract( TF );
