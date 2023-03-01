@@ -15,9 +15,11 @@ A. Restore Databases
 
 6. Restore the backup file "_res/_initial/mssql/training_etracs_city.bak" 
 
-7. Load and execute the file "_res/_initial/mssql/patches/01-patch-etracs-2.5.05.01-007.sql" 
+7. Load and execute the file "_res/_initial/mssql/04-insert-etracs-data.sql" 
 
-8. DONE !!!
+8. Load and execute the file "_res/_initial/mssql/patches/01-patch-etracs-2.5.05.01-007.sql" 
+
+9. DONE !!!
 
 
 
