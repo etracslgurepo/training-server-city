@@ -17,5 +17,6 @@
 		<field name="template" />
 		<field name="reportheader" />
 		<complex name="properties" serializer="default" type="list" />
+		<field name="paramhandler" />
 	</element>
 </schema>

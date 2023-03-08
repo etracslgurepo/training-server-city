@@ -205,5 +205,20 @@ class SysReportTemplateService {
 		def st = new SysReportTemplate( rootPath );
 		return [ result: st.removeResource( name )];
 	}
+
+	@ProxyMethod
+	public def getResource( def filename ) {
+		println "filename is " + filename;
+		def tmp = new SysReportTemplate( rootPath );
+		File f = new File( rootPath , filename );
+		if( f.exists() ) {
+			def r = [:];
+			r.bytes = IOStream.toByteArray( f );
+			r.lastmodified = f.lastModified();
+			return r;
+		}
+		return null;
+	}
+
 }
 

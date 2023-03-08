@@ -121,6 +121,18 @@ class SysReportDefService {
 		return reportDefEm.find( [name: o.name] ).update([state:'DRAFT']);
 	}
 
+	private def getScriptParameters(def o) {
+		def result = [];  
+		def pattern = Pattern.compile( /(?<=PARAMS\.)\w+/ );
+		Matcher matcher = pattern.matcher(o) 
+		while (matcher.find()) {   
+		   result << matcher.group(); 
+		}
+		return result.unique().collect {
+			[ name: it, caption: it ]
+		};
+	}
+
 	@ProxyMethod
 	public def getBuiltinParameters( def o ) {
 		def rpt = reportDefEm.find( [name: o.reportid ] ).first();
@@ -133,6 +145,9 @@ class SysReportDefService {
 			}
 			return list;
 		}
+		else {
+			return getScriptParameters( rpt.statement );
+		}
 	}
 
 	@ProxyMethod
@@ -141,6 +156,9 @@ class SysReportDefService {
 		if( rpt.querytype == "SQL" ) {
 			def xsql = "SELECT q.* FROM (" + rpt.statement + ") q ";
 			return fetchFields( [statement: xsql] );
+		}
+		else {
+			return getScriptParameters( rpt.statement );
 		}		
 	}
 

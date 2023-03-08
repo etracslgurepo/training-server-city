@@ -9,8 +9,10 @@ _tmp
 /_tools
 /fileserver
 /custom-template
+/report-files
 /bin/env.conf
 /lib/mysql.jar
 /web/resources/downloads/modules/custom
 **/resources/platform/etracs255-platform/**
+**/dev-updates.xml
 zzz-custom
