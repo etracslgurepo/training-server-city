@@ -185,10 +185,10 @@ class ResectionService
     public void validateNewTdNo(newfaas) {
         if (!newfaas.tdno) throw new Exception('New TD No. must be specified')
         faasSvc.checkDuplicateTdNo( newfaas.objid, newfaas.tdno )
-				
-				def tdno = [tdno: newfaas.tdno, utdno: newfaas.utdno]
-				em_faas.find([objid: newfaas.objid]).update(tdno)
-				em_faas_list.find([objid: newfaas.objid]).update(tdno)
+        
+        def tdno = [tdno: newfaas.tdno, utdno: newfaas.tdno]
+        em_faas.find([objid: newfaas.objid]).update(tdno)
+        em_faas_list.find([objid: newfaas.objid]).update(tdno)
     }
 
     @ProxyMethod
@@ -199,15 +199,16 @@ class ResectionService
         def newfaas = resectionitem.newfaas;
         if (!newfaas.fullpin) throw new Exception('New PIN must be specified');
 
-        def duplicate = em_resection_item
+        def duplicates = em_resection_item
             .select('faas.*')
             .find([parent_objid: resectionitem.parent.objid])
-            .where('faas_objid <> :faasid AND newfaas_fullpin = :fullpin', [
+            .where('faas_objid <> :faasid and newfaas_fullpin = :fullpin', [
                 faasid: resectionitem.faas.objid,
                 fullpin: resectionitem.newfaas.fullpin
-            ]).first()
+            ]).list()
 
-        if (duplicate) {
+        if (duplicates.size() > 0) {
+            def duplicate = duplicates.first()
             def msg = 'Section ' + resectionitem.newfaas.section
             msg += ' Parcel ' + resectionitem.newfaas.parcel
             msg += ' is already assigned to PIN ' + duplicate.faas.pin 
@@ -290,6 +291,11 @@ class ResectionService
         em_resection.find([objid: entity.objid]).update([state: entity.state])
         return entity
     }    
+
+	@ProxyMethod
+    public def resendToMunicipality(resection){
+        return resection
+    }
 
     @ProxyMethod
     public def approveResectionedFaas(entity, item){
@@ -414,16 +420,26 @@ class ResectionService
 		def newfaasid = item.newfaas?.objid
 		
 		item.newfaas = [:]
-		em_resection_item.find([objid: item.objid]).update([
-			newfaas_objid: null,
-			newfaas_rpuid: null,
-			newfaas_rpid: null,
-			newfaas_section: null,
-			newfaas_parcel: null,
-			newfaas_suffix: null,
-			newfaas_tdno: null,
-			newfaas_fullpin: null,
-		])
+		if (item.faas.rputype == 'land') {
+            em_resection_item.find([objid: item.objid]).update([
+                newfaas_objid: null,
+                newfaas_rpuid: null,
+                newfaas_rpid: null,
+                newfaas_section: null,
+                newfaas_parcel: null,
+                newfaas_suffix: null,
+                newfaas_tdno: null,
+                newfaas_fullpin: null,
+            ])
+		} else {
+            em_resection_item.find([objid: item.objid]).update([
+                newfaas_objid: null,
+                newfaas_rpuid: null,
+                newfaas_suffix: null,
+                newfaas_tdno: null,
+                newfaas_fullpin: null,
+            ])
+		}
 
 		if (newfaasid) {
 			try{

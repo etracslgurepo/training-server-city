@@ -8,9 +8,12 @@ class RPTAssessmentNoticeService
 	@Env 
 	def env 
 
+    @Service('Var')
+	def var
+
 	@Service('DateService')
 	def dtSvc 
-
+    
 	@Service('FAASService')
 	def faasSvc 
 
@@ -179,6 +182,22 @@ class RPTAssessmentNoticeService
 		return em.getFaasesForNoaByRef(ref)
 	}
 
+    @ProxyMethod
+    public def isNoaDelivered(faas) {
+        def noticeitem = em_item.select('objid,assessmentnoticeid')
+            .find([faasid: faas.objid])
+            .first()
+        if (!noticeitem) return false
+
+        def deliveredState = 'DELIVERED';
+        def notice = em.select('objid,state')
+            .find([objid: noticeitem.assessmentnoticeid, state: deliveredState])
+            .first()
+        if (!notice) return false
+
+        return deliveredState.equalsIgnoreCase(notice.state);
+    }
+
 	def getOrgId() {
 		def orgid = env.ORGID
 		if (!orgid) {
@@ -220,9 +239,38 @@ class RPTAssessmentNoticeService
 	void buildFaasAdditionalInfo(faas){
 		faas.street = (faas.street ? faas.street : faas.barangay)
 		faas.description = faas.cadastrallotno
-		if (faas.rputype == 'bldg')
-			faas.description = em.getBldgTypes(faas).bldgkind.join('/')
-	}	
+        def infos = []
+
+		if ('bldg'.equalsIgnoreCase(faas.rputype)){
+			infos = em.getBldgInfos(faas).each{bi-> 
+                bi.info = bi.bldgkind.name
+                if (util.toBoolean(var.get('rptassessmentnotice_report_show_bldgtype'), true)) {
+                    bi.info = bi.bldgtype + ' - ' + bi.bldgkind.name
+                }
+            }
+			if (infos){
+				faas.description = infos.info.join(',')
+			}
+		}
+		else if ('mach'.equalsIgnoreCase(faas.rputype)){
+			infos = em.getMachInfos(faas)
+			if (infos){
+				faas.description = infos.machine.name.join(',')
+			}
+		}
+		else if ('planttree'.equalsIgnoreCase(faas.rputype)){
+			infos = em.getPlantTreeInfos(faas)
+			if (infos){
+				faas.description = infos.planttree.name.join(',')
+			}
+		}
+		else if ('misc'.equalsIgnoreCase(faas.rputype)){
+			infos = em.getMiscInfos(faas)
+			if (infos){
+				faas.description = infos.miscitem.name.join(',')
+			}
+		}
+	}
 
 	void buildSignatories(entity){
 		if (!entity.items) return
@@ -265,7 +313,7 @@ class RPTAssessmentNoticeService
         if (!item) return null 
 
         def notice = em.find([objid: item.assessmentnoticeid]).first()
-        if ('OPEN' != notice.state) return null
+        if (!notice) return null
 
         def items = getItems(notice)
         if (items.size() > 1) return null

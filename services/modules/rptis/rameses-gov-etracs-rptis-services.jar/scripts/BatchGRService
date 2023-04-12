@@ -340,7 +340,7 @@ public class BatchGRService
     void checkPendingFaases(entity){
         def res = em_batchgr.findPendingFaasesCount(entity)
         if (res.icount > 0)
-            throw new Exception('Unable to approve resection. There are still pending resectioned FAAS.\nCancel the transaction and approve again.')
+            throw new Exception('Unable to approve batchgr. There are still pending batchgr FAAS.\nCancel the transaction and approve again.')
     }    
 
 

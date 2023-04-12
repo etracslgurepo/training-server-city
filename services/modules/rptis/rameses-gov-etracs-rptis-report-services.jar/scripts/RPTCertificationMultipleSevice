@@ -7,6 +7,12 @@ class RPTCertificationMultipleService
     @ActiveDB('rptcertification')
     def em;
 
+    @Service('Var')
+	def var
+
+    @Service('RPTUtil')
+	def util
+
     @Service('RPTCertificationService')
     def certSvc 
 
@@ -60,7 +66,12 @@ class RPTCertificationMultipleService
 			item.description = 'LOT ' + item.cadastrallotno 
 		}
 		else if ('bldg'.equalsIgnoreCase(item.rputype)){
-			infos = em.getBldgInfos(item).each{bi-> bi.info = bi.bldgkind.name}
+			infos = em.getBldgInfos(item).each{bi ->
+                bi.info = bi.bldgkind.name
+                if (util.toBoolean(var.get('rptcertification_report_show_bldgtype'), true)) {
+                    bi.info = bi.bldgtype + ' - ' + bi.bldgkind.name
+                }
+            }
 			if (infos){
 				item.description = infos.info.join(',')
 			}

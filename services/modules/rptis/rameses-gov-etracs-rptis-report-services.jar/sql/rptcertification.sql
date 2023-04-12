@@ -108,7 +108,9 @@ SELECT
 	r.totalareasqm, r.totalareaha,
 	rp.ry, rp.barangayid, rp.cadastrallotno, rp.blockno, rp.surveyno, rp.street,
 	b.name AS barangay_name, so.name as lgu_name, r.taxable,
-	po.name as parentlgu_name
+	po.name as parentlgu_name,
+	r.rpumasterid, f.memoranda, f.prevtdno, f.state,
+	f.cancelledbytdnos, f.canceldate
 FROM faas f
 	INNER JOIN rpu r ON f.rpuid = r.objid 
 	INNER JOIN realproperty rp ON f.realpropertyid = rp.objid 

@@ -38,11 +38,10 @@ class OnlineLandTaxBillingService
         }
         
         return [
-            sharing: true,
-            amount: eor.amount,
             rptledger: bill.rptledger,
-            items: bill.rptledger.billitems
-        ];
+            amount: eor.amount,
+            items: bill.rptledger.billitems,
+        ]
 	}
 
 	@ProxyMethod

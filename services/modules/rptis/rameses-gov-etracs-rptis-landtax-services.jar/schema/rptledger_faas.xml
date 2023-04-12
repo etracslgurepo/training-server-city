@@ -19,7 +19,7 @@
         <field name="assessedvalue" required="true" type="decimal" />
         <field name="systemcreated" required="true" type="boolean" />
         <complex name="faas" ref="faas_list" jointype="many-to-one" required="false" 
-            includefields="totalmv">
+            includefields="ry,totalmv">
             <key field="faasid" target="objid" />
         </complex>
         <complex name="txntype" ref="faas_txntype" jointype="many-to-one" required="false" 

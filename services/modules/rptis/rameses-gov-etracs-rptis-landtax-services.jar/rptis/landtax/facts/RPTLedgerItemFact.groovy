@@ -18,6 +18,7 @@ public class RPTLedgerItemFact
     String actualuse
     String revtype
     String revperiod
+    Integer ry
     Integer monthsfromqtr
     Integer monthsfromjan
     Integer priority
@@ -53,6 +54,7 @@ public class RPTLedgerItemFact
         this.entity = item 
         this.objid = item.objid 
         this.rptledgerfaasid = item.rptledgerfaas?.objid
+        this.ry = item?.rptledgerfaas?.faas?.ry
         this.year = item.year
         this.qtr = item.qtr
         this.av = item.av

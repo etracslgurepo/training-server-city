@@ -169,3 +169,34 @@ from (
 	union 
 	select newfaas_objid as objid  from resection_item where parent_objid = $P{objid}
 )x 
+
+
+
+[getBldgInfos]
+select bt.name as bldgtype,  bk.name as bldgkind_name 
+from bldgrpu_structuraltype st 
+	inner join bldgtype bt on st.bldgtype_objid = bt.objid 
+	inner join bldgkindbucc bucc on st.bldgkindbucc_objid = bucc.objid 
+	inner join bldgkind bk on bucc.bldgkind_objid = bk.objid 
+where st.bldgrpuid = $P{rpuid}
+
+
+[getMachInfos]
+select m.name as machine_name
+from machdetail md 
+	inner join machine m on md.machine_objid = m.objid 
+where md.machrpuid = $P{rpuid}
+
+
+[getPlantTreeInfos]
+select pt.name as planttree_name 
+from planttreedetail ptd 
+	inner join planttree pt on ptd.planttree_objid = pt.objid 
+where ptd.planttreerpuid = $P{rpuid}
+
+
+[getMiscInfos]
+select mi.name as miscitem_name 
+from miscrpuitem mri 
+	inner join miscitem mi on mri.miscitem_objid = mi.objid 
+where mri.miscrpuid = $P{rpuid}

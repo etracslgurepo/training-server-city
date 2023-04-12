@@ -136,6 +136,12 @@ class LandTaxReportService
 			params.fromdate = dateSvc.parse('yyyy-MM-dd', params.date);
 			params.todate   = dateSvc.parse('yyyy-MM-dd', params.date) + 1;
 			period = 'For ' + dateSvc.format('MMMMM dd, yyyy', params.date);
+		} else if ( periodcode == 'range' ) {
+            if ( !params.fromdate ) throw new Exception('fromdate parameter is required');
+            if ( !params.todate ) throw new Exception('todate parameter is required');
+			params.fromdate = dateSvc.parse('yyyy-MM-dd', params.fromdate);
+			params.todate   = dateSvc.parse('yyyy-MM-dd', params.todate) + 1;
+			period = 'From ' + dateSvc.format('MMMMM dd, yyyy', params.fromdate) + ' to ' + dateSvc.format('MMMMM dd, yyyy', (params.todate-1)) ;
 		} else {
 			if ( !params.month ) throw new Exception('month parameter is required ')
 			params.fromdate = dateSvc.parse('yyyy-MM-dd', params.year + '-' + (periodcode == 'asofmon' ? '01' : params.month.index) + '-01');
@@ -161,7 +167,6 @@ class LandTaxReportService
 
 		data.title = "REPORT ON REAL PROPERTY TAX COLLECTIONS"; 
 		data.period = period; 
-        println 'params => ' + params
 		return [reportdata : data]; 
 	} 
 
@@ -219,7 +224,29 @@ class LandTaxReportService
 				}
 			}
 		}
+        
+        data.items << getRevTypeTotals('basic', data.items)
+        data.items << getRevTypeTotals('sef', data.items)
 	}
+
+    def getRevTypeTotals(revtype, items) {
+        return [
+            barangay: 'TOTAL',
+            immediateint: items.findAll{it.revtype == revtype}.immediateint.sum(),
+            immediatetax: items.findAll{it.revtype == revtype}.immediatetax.sum(),
+            revtype: items.findAll{it.revtype == revtype}.revtype.sum(),
+            priortax: items.findAll{it.revtype == revtype}.priortax.sum(),
+            cydisc: items.findAll{it.revtype == revtype}.cydisc.sum(),
+            cynet: items.findAll{it.revtype == revtype}.cynet.sum(),
+            priorint: items.findAll{it.revtype == revtype}.priorint.sum(),
+            prevtotal: items.findAll{it.revtype == revtype}.prevtotal.sum(),
+            subtotaltax: items.findAll{it.revtype == revtype}.subtotaltax.sum(),
+            cyint: items.findAll{it.revtype == revtype}.cyint.sum(),
+            total: items.findAll{it.revtype == revtype}.total.sum(),
+            subtotalint: items.findAll{it.revtype == revtype}.subtotalint.sum(),
+            cytax: items.findAll{it.revtype == revtype}.cytax.sum(),
+        ]
+    }
 
 
 	void buildAdvanceReport(data, params){

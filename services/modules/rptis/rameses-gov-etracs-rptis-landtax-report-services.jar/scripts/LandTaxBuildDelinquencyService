@@ -91,6 +91,7 @@ class LandTaxBuildDelinquencyService
 			em_delinquency.deleteDelinquency()
 		}
 		catch(e){
+			e.printStackTrace();
 			retval.status = 'error'
 		}
 		return retval
@@ -129,6 +130,22 @@ class LandTaxBuildDelinquencyService
 		return build
 	}
 
+    @ProxyMethod
+    public def reloadBrgyLedgers(brgy) {
+        def cy = dtSvc.serverYear;
+        em_delinquency.insertForProcess([barangayid: brgy.barangayid, cy: cy])
+        def count = em_delinquency_forprocess.select('cnt: {count(*)}').find([barangayid: brgy.barangayid]).val();
+
+        em_delinquency_barangay.find([
+            barangayid: brgy.barangayid, 
+            parentid: brgy.parentid
+        ]).update([count: count])
+        brgy.count = count;
+
+        em_delinquency.find([objid: brgy.parentid]).update([state: 'PROCESSING'])
+        
+        return brgy;
+    }
 
 	@ProxyMethod
 	public def getLedgersForProcess( item ) {

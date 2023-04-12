@@ -253,6 +253,10 @@ public class RPTBillingRuleService
 			return false 
 		}
 
+		if (rptledger.lastyearpaid == bill.cy && rptledger.lastqtrpaid == 4 ){
+			return false
+		}
+
 		if (rptledger.lastyearpaid == bill.cy && rptledger.lastqtrpaid + 1 < bill.cqtr){
 			return false
 		}
@@ -319,6 +323,7 @@ public class RPTBillingRuleService
 		item.monthsfromqtr = calculateNoOfMonthsFromQtr(bill._pdate, item.year, item.qtr)
 		item.monthsfromjan = calculateNoOfMonthsFromJan(bill._pdate, item.year, item.qtr)
 		item.backtax = checkBacktax(bill, item)
+        item.txntype = item.rptledgerfaas?.txntype?.objid
 		return new RPTLedgerItemFact(bill.ledgerfact, item)
 	}
 

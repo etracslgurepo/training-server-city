@@ -6,8 +6,11 @@ class RPTCertificationPropertyHistoryService
     @Service('RPTCertificationService')
     def certSvc 
 
-		@DataContext('faas_previous')
-		def em_faas_previous
+    @DataContext('faas_previous')
+    def em_faas_previous
+
+    @DataContext('rpu_history')
+    def em_rpu_history
 
 	
 	@ProxyMethod
@@ -28,7 +31,12 @@ class RPTCertificationPropertyHistoryService
 
 	void buildFaasHistories(faas, histories) {
 		def history = certSvc.getFaasInfo(faas.objid)
-		if (history) histories << history
+        if (!history) return;
+        faas.rpumasterid = history.rpumasterid
+        history.pin = history.fullpin
+        history.cancelinfo = getCancelInfo(history)
+        history.skind = getKindDescription(history)
+		histories << history
 
 		def prevfaases = em_faas_previous.select('prevfaasid').find([faasid: faas.objid]).list()
 		prevfaases.each{pf ->
@@ -39,8 +47,38 @@ class RPTCertificationPropertyHistoryService
 	def getHistories(faas) {
 		def histories = []
 		buildFaasHistories(faas, histories)
+        histories += em_rpu_history
+            .find([rpumaster_objid: faas.rpumasterid])
+            .orderBy('ry desc')
+            .list()
+            .each {
+                it.classcode = histories[0].classcode
+                it.skind = getKindDescription(histories[0])
+                it.rputype = histories[0].rputype
+                it.cancelinfo = getCancelInfo(it)
+            }
 		return histories
 	}
+
+    def getCancelInfo(faas) {
+        if (!'CANCELLED'.equalsIgnoreCase(faas.state)) return null;
+        def cancelinfo = 'Cancelled by TD/ARP No. ' + faas.cancelledbytdnos 
+        cancelinfo += ' PIN: ' + faas.pin  
+        cancelinfo += ' Effective Year: ' + faas.effectivityyear  
+        cancelinfo += ' Date: ' + faas.canceldate  
+        return cancelinfo
+    }
+
+    def getKindDescription(faas) {
+        def kind = [
+            'land': 'Land',
+            'bldg': 'Building',
+            'mach': 'Machinery',
+            'planttree': 'Plant/Tree',
+            'misc': 'Miscellaneous',
+        ]
+        return faas.classname + ' ' + kind[faas.rputype]
+    }
 
 	void loadFaasInfo(cert){
 		def faas = certSvc.getFaasInfo(cert.faasid)

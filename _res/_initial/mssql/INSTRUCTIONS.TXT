@@ -2,24 +2,27 @@
 A. Restore Databases
 ==========================
 
-1. Open a Navicat or SQL Management Studio 
+01. Open a Navicat or SQL Management Studio 
    and connect to your database engine
 
-2. Open a Query window 
+02. Open a Query window 
 
-3. Load and execute the file "_res/_initial/mssql/00-create-eor-db.sql" 
+03. Load and execute the file "_res/_initial/mssql/00-create-eor-db.sql" 
 
-4. Load and execute the file "_res/_initial/mssql/01-create-image-db.sql" 
+04. Load and execute the file "_res/_initial/mssql/01-create-image-db.sql" 
 
-5. Load and execute the file "_res/_initial/mssql/02-create-notification-db.sql" 
+05. Load and execute the file "_res/_initial/mssql/02-create-notification-db.sql" 
 
-6. Restore the backup file "_res/_initial/mssql/training_etracs_city.bak" 
+06. Restore the backup file "_res/_initial/mssql/training_etracs_city.bak" 
+    using SQL Management Studio only
 
-7. Load and execute the file "_res/_initial/mssql/04-insert-etracs-data.sql" 
+07. Load and execute the file "_res/_initial/mssql/04-insert-etracs-data.sql" 
 
-8. Load and execute the file "_res/_initial/mssql/patches/01-patch-etracs-2.5.05.01-007.sql" 
+08. Load and execute the file "_res/_initial/mssql/patches/01-patch-etracs-2.5.05.01-007.sql" 
 
-9. DONE !!!
+09. Load and execute the file "_res/_initial/mssql/patches/02-patch-etracs-2.5.05.01-008.sql" 
+
+10. DONE !!!
 
 
 
@@ -27,9 +30,9 @@ A. Restore Databases
 B. Modify DataSource Files
 ==========================
 
-1. Go to folder "services/datasources"
+01. Go to folder "services/datasources"
 
-2. Edit the file "epaymentds" and set the file content to: 
+02. Edit the file "epaymentds" and set the file content to: 
 
 dialect=mssql
 driverClass=com.microsoft.sqlserver.jdbc.SQLServerDriver
@@ -38,9 +41,9 @@ user=${dbserver_user}
 pwd=${dbserver_pass}
 
 
-3. Save and close the text editor.
+03. Save and close the text editor.
 
-4. Edit the file "etracsds" and set the file content to: 
+04. Edit the file "etracsds" and set the file content to: 
 
 dialect=mssql
 driverClass=com.microsoft.sqlserver.jdbc.SQLServerDriver
@@ -49,9 +52,9 @@ user=${dbserver_user}
 pwd=${dbserver_pass}
 
 
-5. Save and close the text editor.
+05. Save and close the text editor.
 
-6. Edit the file "imageds" and set the file content to: 
+06. Edit the file "imageds" and set the file content to: 
 
 dialect=mssql
 driverClass=com.microsoft.sqlserver.jdbc.SQLServerDriver
@@ -60,9 +63,9 @@ user=${dbserver_user}
 pwd=${dbserver_pass}
 
 
-7. Save and close the text editor.
+07. Save and close the text editor.
 
-8. Edit the file "notificationds" and set the file content to: 
+08. Edit the file "notificationds" and set the file content to: 
 
 dialect=mssql
 driverClass=com.microsoft.sqlserver.jdbc.SQLServerDriver
@@ -71,7 +74,7 @@ user=${dbserver_user}
 pwd=${dbserver_pass}
 
 
-9. Save and close the text editor.
+09. Save and close the text editor.
 
 10. Edit the file "queueds" and set the file content to: 
 

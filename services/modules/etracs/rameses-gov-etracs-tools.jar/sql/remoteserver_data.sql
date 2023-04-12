@@ -104,6 +104,10 @@ where fund.objid = t2.objid
 [getFundGroups]
 select * from fundgroup 
 
+[findItemAccount]
+select * from itemaccount
+where objid = $P{objid}
+
 [getItemAccounts]
 select a.* from ( 
   select distinct objid  
@@ -157,9 +161,13 @@ select tg.* from (
       inner join fund on fund.objid = ia.fund_objid 
     where o.org_objid = $P{orgid} 
   )t1  
-)t2, itemaccount a, itemaccount_tag tg   
+)t2, itemaccount a, itemaccount_tag tg 
 where a.objid = t2.objid 
   and a.objid = tg.acctid 
+
+[getItemAccountTagList]
+select * from itemaccount_tag 
+where acctid = $P{acctid}
 
 [getUserGroups]
 select ug.* from ( 

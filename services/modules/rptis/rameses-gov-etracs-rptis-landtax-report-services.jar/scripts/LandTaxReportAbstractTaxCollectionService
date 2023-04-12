@@ -79,10 +79,10 @@ class LandTaxReportAbstractTaxCollectionService {
         header.dtposted = dtsvc.format('MMMMM dd, yyyy', entity.controldate )
         header.REMITTANCEDATE = header.dtposted;
         header.REMITTANCEAMOUNT = entity.amount
-        header.COLLECTORNAME = entity.collector.name
-        header.COLLECTORTITLE = entity.collector.title
-        header.LIQUIDATINGOFFICER = entity.liquidatingofficer.name
-        header.LIQUIDATINGOFFICERTITLE = entity.liquidatingofficer.title
+        header.COLLECTORNAME = entity.collector?.name
+        header.COLLECTORTITLE = entity.collector?.title
+        header.LIQUIDATINGOFFICER = entity.liquidatingofficer?.name
+        header.LIQUIDATINGOFFICERTITLE = entity.liquidatingofficer?.title
         header.DATEPOSTED =  entity.controldate ;
         header.AMTINWORDS = numSvc.convertDouble( entity.amount )
 
@@ -165,15 +165,15 @@ class LandTaxReportAbstractTaxCollectionService {
             advitems = em.getAbstractOfRPTCollectionAdvance(params).each{buildPeriod(it)};
         } else if ('current' == params.collectiontype.code) {
             params.collyear = params.pdate.year
-            params.filter += ' AND rpi.year = $P{collyear}'
+            params.filter += ' AND year = $P{collyear}'
             items = em.getAbstractOfRPTCollection(params).each{buildPeriod(it)};
         } else if ('previous' == params.collectiontype.code) {
             params.collyear = params.pdate.year
-            params.filter += ' AND rpi.year < $P{collyear}'
+            params.filter += ' AND year < $P{collyear}'
             items = em.getAbstractOfRPTCollection(params).each{buildPeriod(it)};
         } else if ('currprev' == params.collectiontype.code) {
             params.collyear = params.pdate.year
-            params.filter += ' AND rpi.year <= $P{collyear}'
+            params.filter += ' AND year <= $P{collyear}'
             items = em.getAbstractOfRPTCollection(params).each{buildPeriod(it)};
         }
 

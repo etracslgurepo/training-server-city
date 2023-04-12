@@ -61,11 +61,11 @@ insert into report_rptdelinquency_total_bytaxpayer (
 )
 SELECT 
 	rl.taxpayer_objid,
-	rr.parentid,
+	rr.rptledgerid as parentid,
 	SUM(rr.basic - rr.basicdisc + rr.basicint  + rr.sef - rr.sefdisc + rr.sefint ) AS amount,
 	count( distinct rr.rptledgerid) as ledgercount
 FROM vw_landtax_report_rptdelinquency_detail rr 
 	inner join rptledger rl on rr.rptledgerid = rl.objid 
 WHERE rl.taxable = 1
 AND NOT EXISTS(select * from faas_restriction where ledger_objid = rr.rptledgerid and state='ACTIVE')
-GROUP BY rl.taxpayer_objid, rr.parentid
+GROUP BY rl.taxpayer_objid, rr.rptledgerid

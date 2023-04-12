@@ -117,3 +117,42 @@ and rp.ry = $P{ry}
 and rp.section = $P{section}
 and f.state not in ('CANCELLED')
 order by rp.pin, r.suffix 
+
+[getPreviousRevisionYears]
+SELECT s.objid, s.ry
+FROM landrysetting s
+	INNER JOIN rysetting_lgu r ON s.objid = r.rysettingid
+WHERE r.lguid = $P{lguid}
+  AND s.ry < $P{ry}  
+
+UNION ALL  
+
+SELECT s.objid, s.ry
+FROM bldgrysetting s
+	INNER JOIN rysetting_lgu r ON s.objid = r.rysettingid
+WHERE r.lguid = $P{lguid}
+  AND s.ry < $P{ry}  
+
+UNION ALL  
+
+SELECT s.objid, s.ry
+FROM machrysetting s
+	INNER JOIN rysetting_lgu r ON s.objid = r.rysettingid
+WHERE r.lguid = $P{lguid}
+  AND s.ry < $P{ry}  
+
+UNION ALL  
+
+SELECT s.objid, s.ry
+FROM planttreerysetting s
+	INNER JOIN rysetting_lgu r ON s.objid = r.rysettingid
+WHERE r.lguid = $P{lguid}
+  AND s.ry < $P{ry}  
+
+UNION ALL  
+
+SELECT s.objid, s.ry
+FROM miscrysetting s
+	INNER JOIN rysetting_lgu r ON s.objid = r.rysettingid
+WHERE r.lguid = $P{lguid}
+  AND s.ry < $P{ry}  

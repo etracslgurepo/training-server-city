@@ -145,7 +145,6 @@ class RPTLedgerInterceptor
 
     @After(pattern="FAASChangeInfoService.updateInfo", eval="#{result.action=='change_faas_appraisal'}", index=1000)
     public void updateFaasHistory(evt){
-        println 'RPTLedgerInterceptor: updateFaasHistory...'
         def changeinfo = evt.result
         
         //cancel original entry and cutoff toyear and to qtr 

@@ -8,7 +8,8 @@ update realproperty set
 	north = $P{north},
 	south = $P{south},
 	east = $P{east},
-	west = $P{west}
+	west = $P{west},
+	portionof = $P{portionof}
 where objid = $P{rpid}
 
 

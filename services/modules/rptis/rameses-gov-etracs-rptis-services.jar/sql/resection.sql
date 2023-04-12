@@ -1,12 +1,12 @@
 [getItems]
-select f.objid, r.rputype, rp.pintype, rp.pin, rp.claimno, r.suffix  
-from faas f 
+select distinct f.objid, r.rputype, rp.pintype, rp.pin, rp.claimno, r.suffix  
+from faas_list f 
 inner join rpu r on f.rpuid = r.objid 
-inner join realproperty rp on f.realpropertyid = rp.objid 
+inner join realproperty rp on f.pin like concat(rp.pin, '%')
 where f.state = 'CURRENT' 
 and rp.barangayid = $P{barangayid}
 and rp.section = $P{section}
-
+and f.ry = rp.ry 
 
 [deleteFaasTasks]
 delete from faas_task 

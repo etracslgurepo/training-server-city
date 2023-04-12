@@ -150,7 +150,7 @@ class CancelledFAASService
     @ProxyMethod
     public def approve( entity ) {
         entity.state = STATE_APPROVED
-        if (entity.txnno.startsWith('TMP')) {
+        if (entity.txnno && entity.txnno.startsWith('TMP')) {
             entity.txnno = getNextSeries(entity)
             entity.txndate = dateSvc.serverDate
         }

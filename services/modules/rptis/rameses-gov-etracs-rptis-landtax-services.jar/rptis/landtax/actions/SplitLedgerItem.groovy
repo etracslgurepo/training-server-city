@@ -42,6 +42,8 @@ public class SplitLedgerItem implements RuleActionHandler {
 			}
 		}
 
+		if (!qtrlyfacts) throw new Exception('An overpayment for year ' + item.year + '  is detected. Contact Land Tax for assistance.')
+
 		// adjust last item totals 
 		if (qtrlyfacts.size() == 1){
 			qtrlyfacts[0].interest = fullint

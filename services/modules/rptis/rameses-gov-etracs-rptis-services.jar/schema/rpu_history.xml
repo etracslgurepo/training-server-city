@@ -9,7 +9,7 @@
 		<field name="pin" required="true"  caption="PIN" />
 		<field name="ry" required="true" type="integer"  caption="Revision Year" />
 		<field name="txntype_objid" required="true" caption="Txn"  />
-		<field name="effectivityyear" required="true" type="integer" caption="Effective Year"  />
+		<field name="effectivityyear" type="integer" caption="Effective Year"  />
 		<field name="effectivityqtr" required="true" type="integer" />
 		<field name="titleno"  caption="Title No." />
 		<field name="titledate" />
@@ -27,14 +27,14 @@
 		<field name="totalav" required="true" type="decimal" caption="Total AV" />
 		<field name="memoranda" required="true" />
 		<field name="surveyno"  caption="Survey No." />
-		<field name="cadastrallotno" required="true"  caption="Lot No." />
+		<field name="cadastrallotno" caption="Lot No." />
 		<field name="blockno"  caption="Block No." />
 		<field name="purok"  />
 		<field name="street"  />
 		<field name="dtapproved"  />
-		<field name="cancelreason" required="true"  caption="Cancel Reason" />
-		<field name="canceldate" required="true" />
-		<field name="cancelledbytdnos" required="true" caption="Cancelled By"  />
+		<field name="cancelreason"   caption="Cancel Reason" />
+		<field name="canceldate"  />
+		<field name="cancelledbytdnos"  caption="Cancelled By"  />
 		<field name="prevhistory_objid" />
 	</element>
 </schema>

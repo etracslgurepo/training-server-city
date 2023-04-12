@@ -64,7 +64,6 @@ FROM faas f
   inner join rpu r on f.rpuid = r.objid 
 WHERE f.realpropertyid = $P{realpropertyid}
 AND r.rputype = $P{rputype}
-GROUP BY r.rputype 
 
 
 [updateSuffix]

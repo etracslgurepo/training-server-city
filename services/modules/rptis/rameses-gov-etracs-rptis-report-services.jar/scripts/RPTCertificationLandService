@@ -7,6 +7,11 @@ class RPTCertificationLandService
     @ActiveDB('rptcertification')
     def em
 
+    @Service('Var')
+	def var
+
+    @Service('RPTUtil')
+	def util
 
     @Service('RPTCertificationService')
     def certSvc 
@@ -74,6 +79,14 @@ class RPTCertificationLandService
 		return cert 
 	}
 
+    @ProxyMethod
+    public def getDispositiontypes() {
+        return [
+            [id: 'sold', title: 'SALE'],
+            [id: 'donated', title: 'DONATION'],
+        ]
+    }
+
 	void loadFaasInfo(cert){
 		def faas = certSvc.getFaasInfo(cert.faasid)
 		if (faas) {
@@ -106,7 +119,12 @@ class RPTCertificationLandService
 		def infos = []
 		list.each{
 			if ('bldg'.equalsIgnoreCase(it.rputype)){
-				infos = em.getBldgInfos(it).each{bi-> bi.info = bi.bldgtype + ' - ' + bi.bldgkind.name}
+				infos = em.getBldgInfos(it).each{bi-> 
+					bi.info = bi.bldgkind.name
+                    if (util.toBoolean(var.get('rptcertification_report_show_bldgtype'), true)) {
+                        bi.info = bi.bldgtype + ' - ' + bi.bldgkind.name
+                    }
+				}
 				if (infos){
 					it.description = infos.info.join(',')
 				}

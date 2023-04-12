@@ -19,18 +19,44 @@ class LandTaxReportTopNRealPropertyTaxpayerService
 	public def buildReport(params){
 		params._limit = params.topn 
 		params.type = '%'
+		params.entitytypeid = '%'
 		
+		if (params.entitytype) {
+			params.entitytypeid = params.entitytype.id
+		}
+
 		if (params.rputype) {
-			params.type = params.rputype
+			params.type = params.rputype.id
 		}
 
 		def list = []
-		em.getTopNPayments(params).each{
-			list += em.getTopNTaxpayerPayments([
-				year: params.year, 
-				amount: it.amount,
-				type: params.type,
-			])
+		if ('payee'.equalsIgnoreCase(params.payeetype.id)) {
+			em.getTopNPayments(params).each{
+				list += em.getTopNTaxpayerPayments([
+					year: params.year, 
+					amount: it.amount,
+					entitytypeid: params.entitytypeid,
+					type: params.type,
+				])
+			}
+		} else if ('owner'.equalsIgnoreCase(params.payeetype.id)) {
+			em.getTopNPaymentsByOwner(params).each{
+				list += em.getTopNTaxpayerPaymentsByOwner([
+					year: params.year, 
+					amount: it.amount,
+					entitytypeid: params.entitytypeid,
+					type: params.type,
+				])
+			}
+		} else {
+			em.getTopNPaymentsByPropertyOwner(params).each{
+				list += em.getTopNTaxpayerPaymentsByPropertyOwner([
+					year: params.year, 
+					amount: it.amount,
+					entitytypeid: params.entitytypeid,
+					type: params.type,
+				])
+			}
 		}
 
 		if (!list) throw new Exception('There are no records found.');

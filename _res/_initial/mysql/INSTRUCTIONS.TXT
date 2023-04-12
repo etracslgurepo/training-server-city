@@ -8,25 +8,32 @@ Restore Databases
 
    mysql -u root -p -f  <  00-create-eor-db.sql
 
+
 3. Restore the "training_image" database 
 
    mysql -u root -p -f  <  01-create-image-db.sql
+
 
 4. Restore the "training_notification" database 
 
    mysql -u root -p -f  <  02-create-notification-db.sql
 
+
 5. Restore the "training_etracs" database schema
 
    mysql -u root -p -f  <  03-create-etracs-schema.sql
+
 
 6. Insert the "training_etracs" data 
 
    mysql -u root -p -f  <  04-insert-etracs-data.sql
 
+
 7. Execute patches for "training_etracs" database
 
    mysql -u root -p -f  <  patches/01-patch-etracs-2.5.05.01-007.sql
+
+   mysql -u root -p -f  <  patches/02-patch-etracs-2.5.05.01-008.sql
 
 
 8. DONE !!!

@@ -63,6 +63,18 @@ class FAASService
 	@DataContext('rpt_examination')
 	def em_examination
 
+	@DataContext('bldgrpu')
+	def em_bldgrpu
+
+	@DataContext('machrpu')
+	def em_machrpu
+
+	@DataContext('planttreerpu')
+	def em_planttreerpu
+    
+	@DataContext('miscrpu')
+	def em_miscrpu
+
 	@Service('Var')
 	def var 
 
@@ -157,7 +169,7 @@ class FAASService
 
 			def faas_new_discovery_validate_suffix = var.faas_new_discovery_validate_suffix
 			if (faas_new_discovery_validate_suffix == null || util.isTrue(faas_new_discovery_validate_suffix)){
-				def nextsuffix = rpuSvc.getNextSuffix([rputype:info.rputype, realpropertyid:info.rp.objid])
+				def nextsuffix = rpuSvc.getNextSuffix([rputype:info.rputype, realpropertyid:info.rp.objid, suffix: info.suffix])
 				
 				if (info.subsuffix) {
 					if (info.subsuffix < nextsuffix.subsuffix) {
@@ -479,19 +491,28 @@ class FAASService
     }
 
 	void updateImprovementLandRpuIds(faas){
-        if (!'land'.equalsIgnoreCase(faas.rpu.rputype)) return;
+        if (!'land'.equalsIgnoreCase(faas.rpu.rputype)) return
+		if (!util.isTrue(var.faas_improvement_auto_update_land_reference)) return
 
-        def prevrpu = em_faas.findPreviousLandRpu(faas)
-        if (prevrpu){
-            em_faas.getImprovementFaasesByLandRpuId([landrpuid: prevrpu.objid]).each{improvementfaas ->
-                logSvc.logA('updatelandref', 'faas', improvementfaas.faasid, 'Previous Land: ' + faas.prevtdno)
-            }
+        def fland = em_faas_list.select('objid,rpuid,pin').find([objid: faas.objid]).first()
+        fland.pin += '%'
+        
+        def improvements = em_faas_list
+            .select('objid,rpuid,rputype')
+            .where("state NOT IN ('CANCELLED', 'PENDING') AND rputype <> 'land' AND pin LIKE :pin", fland)
+            .list();
 
-            def params = [newrpuid: faas.rpu.objid, prevrpuid: prevrpu.objid]
-            em_faas.updateBldgRpuLandRpuId(params)
-            em_faas.updateMachRpuLandRpuId(params)
-            em_faas.updatePlantTreeRpuLandRpuId(params)
-            em_faas.updateMiscRpuLandRpuId(params)
+        improvements.each{improvement ->
+            logSvc.logA('updatelandref', 'faas', improvement.objid, 'Previous Land: ' + faas.prevtdno)
+            def params = [landrpuid: faas.rpu.objid]
+            if ('bldg'.equalsIgnoreCase(improvement.rputype))
+                em_bldgrpu.find([objid: improvement.rpuid]).update(params);
+            else if ('mach'.equalsIgnoreCase(improvement.rputype))
+                em_machrpu.find([objid: improvement.rpuid]).update(params);
+            else if ('planttree'.equalsIgnoreCase(improvement.rputype))
+                em_planttreerpu.find([objid: improvement.rpuid]).update(params);
+            else if ('misc'.equalsIgnoreCase(improvement.rputype))
+                em_miscrpu.find([objid: improvement.rpuid]).update(params);
         }
     }
 

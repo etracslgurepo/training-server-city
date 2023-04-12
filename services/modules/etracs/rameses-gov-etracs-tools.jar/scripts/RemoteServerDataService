@@ -48,6 +48,9 @@ class RemoteServerDataService {
 			if ( it.info instanceof String ) { 
 				it.info = ObjectDeserializer.getInstance().read( it.info ); 
 			} 
+			else {
+				it.info = [:]; 
+			}
 		}
 		entity.data.collectiontypeorgs = adb.getCollectionTypeOrgs( params ); 
 		entity.data.collectionTypesAccounts = adb.getCollectionTypeAccounts( params );
@@ -77,6 +80,20 @@ class RemoteServerDataService {
 		entity.data.itemaccounts = adb.getItemAccounts( params );
 		entity.data.itemaccounttags = adb.getItemAccountTags( params );
 		entity.data.banks = adb.getBanks( params ); 
+
+		entity.data.itemaccounts.findAll{( it.parentid != null )}.each{ o-> 
+			def itemAcct = entity.data.itemaccounts.find{( it.objid == o.parentid )} 
+			if ( itemAcct ) return; 
+
+			itemAcct = adb.findItemAccount([ objid: o.parentid ]); 
+			if ( itemAcct ) { 
+				entity.data.itemaccounts << itemAcct; 
+
+				def tags = adb.getItemAccountTagList([ acctid: o.parentid ]); 
+				if ( tags ) entity.data.itemaccounttags.addAll( tags ); 
+			}
+		}
+		
 
 		if ( entity.data.outputformat == 'v254' ) { 
 			resolve254Compatibility( entity.data ); 

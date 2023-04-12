@@ -178,7 +178,6 @@ class GeneralRevisionService
 	*
 	* --------------------------------------------------------*/
 
-	/* returns the list of revision settings which is greater than the specified ry*/
 	@ProxyMethod
 	public def getRyList(lguid, ry, rputype ) {
 		lguid = (lguid ? lguid : var.lgu_objid)
@@ -186,6 +185,14 @@ class GeneralRevisionService
 		rputype = (rputype ? rputype : 'LAND')
 		return em.sqlContext.createNamedQuery('generalrevision:getRyList' + rputype.toUpperCase())
 				.setParameters([lguid:lguid, ry:ry]).resultList.ry.unique() 
+	}
+
+	@ProxyMethod
+	public def getPreviousRevisionYears(lguid, ry, rputype ) {
+		lguid = (lguid ? lguid : var.lgu_objid)
+		ry = (ry == null ? var.current_ry : ry)
+		rputype = (rputype ? rputype : 'LAND')
+		return grdb.getPreviousRevisionYears([lguid:lguid, ry:ry]).ry.unique();
 	}
 }
 

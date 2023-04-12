@@ -76,6 +76,39 @@ class FaasServiceInterceptor
 		clearInfo(faas)
 	}
 
+	@After(pattern="FAASService.initTransaction", eval="#{result.txntype.objid.matches('TRY')}", index=10) 
+	public void initTransferChangeRevision( evt ) {
+		def info = evt.args[0]
+		def faas = evt.result 
+		
+		faas.tdno = null
+		faas.taxpayer = [:]
+		faas.owner = [:]
+		faas.administrator = [:]
+		faas.beneficiary = [:]
+		faas.memoranda = null
+
+		faas.rpu.ry = info.newry
+		faas.rp.ry = faas.rpu.ry
+		faas.effectivityyear = faas.rpu.ry + 1
+
+		faas.rpu.assessments = []
+		if ('land'.equalsIgnoreCase(faas.rpu.rputype)) {
+			faas.rpu.landdetails = []
+			faas.rpu.planttrees = []
+			faas.rpu.landadjustments = []
+		} else if ('bldg'.equalsIgnoreCase(faas.rpu.rputype)) {
+			faas.rpu.structures = []
+			faas.rpu.structuraltypes = []
+		} else if ('mach'.equalsIgnoreCase(faas.rpu.rputype)) {
+			faas.rpu.machuses = []
+		} else if ('planttree'.equalsIgnoreCase(faas.rpu.rputype)) {
+			faas.rpu.planttrees = []
+		} else if ('misc'.equalsIgnoreCase(faas.rpu.rputype)) {
+			faas.rpu.items = []
+		}
+	}
+
 	@Before(pattern="FAASService.submitForApproval", eval="#{args[0].txntype.objid.matches('TR|TRE|TRC')}", index=11) 
 	public void validateTransfer( evt ) {
 		def faas = evt.args[0]

@@ -120,6 +120,8 @@ class MachRPUService
                 m.objid = util.generateId('MD')
                 m.machuseid = mu.objid 
                 m.machrpuid = rpu.objid 
+                m.newlyinstalled = false
+                m.taxable = util.toBoolean(m.taxable, true)
             }
         }
     }
@@ -239,34 +241,26 @@ class MachRPUService
 
 
     void calculateRCNLD( machine ) {
-        def cost = machine.originalcost 
-        if( util.isTrue(machine.newlyinstalled)) {
-            machine.acquisitioncost = machine.originalcost + machine.freightcost + 
-                                         machine.insurancecost + machine.installationcost + 
-                                         machine.brokeragecost + machine.arrastrecost + 
-                                         machine.othercost 
-            cost = machine.acquisitioncost
-        }
-        else {
-            machine.acquisitioncost  = 0.0
-            machine.freightcost      = 0.0
-            machine.insurancecost    = 0.0
-            machine.installationcost = 0.0
-            machine.brokeragecost    = 0.0
-            machine.arrastrecost     = 0.0
-            machine.othercost        = 0.0
-            machine.replacementcost  = 0.0
-        } 
+        machine.acquisitioncost = machine.originalcost + machine.freightcost + 
+                                        machine.insurancecost + machine.installationcost + 
+                                        machine.brokeragecost + machine.arrastrecost + 
+                                        machine.othercost 
+        def cost = machine.acquisitioncost 
+
         if( util.isTrue(machine.imported) && machine.ferac > 0.0) {
             def factor = numberSvc.roundA(machine.forex / machine.ferac, 6)
             cost = numberSvc.round( cost * factor) 
         }
-        if( machine.conversionfactor > 0.0) {
+        if( machine.conversionfactor != 0.0) {
             cost = numberSvc.round( cost * machine.conversionfactor )
         }
-              
 
-        machine.replacementcost = cost
+        if( util.isTrue(machine.newlyinstalled)) {
+            cost = machine.acquisitioncost
+            machine.replacementcost = cost
+        } else if (machine.conversionfactor != 1){
+            machine.replacementcost = cost
+        }
         
         if( machine.remaininglife == 0 && 
             util.isFalse(machine.newlyinstalled) && 
@@ -376,7 +370,9 @@ class MachRPUService
         rpu.machuses = em.getMachUses([machrpuid:rpu.objid])
         rpu.machuses.each{ mu ->
             mu.taxable = util.toBoolean(mu.taxable, true)
-            mu.machines = em_machdetail.find([machuseid: mu.objid]).list()
+            mu.machines = em_machdetail.find([machuseid: mu.objid]).list().each{m ->
+                m.taxable = util.toBoolean(m.taxable, true)
+            }
         }
          
     }

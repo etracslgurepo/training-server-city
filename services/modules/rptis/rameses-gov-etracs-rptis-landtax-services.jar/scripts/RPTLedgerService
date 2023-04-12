@@ -439,19 +439,19 @@ class RPTLedgerService
         if (!ledger){
             ledger = em_rptledger.find([tdno:faas.prevtdno, taxpayer_objid:faas.taxpayer?.objid]).first() 
         }
-        if (ledger){
-            ledger.faasid = faas.objid 
-            ledger.advancebill = false 
-            ledger.taxable = util.toBoolean(ledger.taxable, true)
-            em_rptledger.update(ledger)
-            em_rptledger_item.where('parentid = :parentid AND year >= :effectivityyear AND amtpaid = 0', [parentid: ledger.objid, effectivityyear: faas.effectivityyear]).delete()
-            createLedgerFaas(ledger, faas).each{
-                postLedgerFaas(it) 
-            }
-            updateLedgerFaasInfo(faas, ledger)
-            adjustLedgerItemByEffectivity(faas, ledger)
-            postTaxDifference(ledger, faas)
+        if (!ledger) return;
+
+        ledger.faasid = faas.objid 
+        ledger.advancebill = false 
+        ledger.taxable = util.toBoolean(ledger.taxable, true)
+        em_rptledger.update(ledger)
+        em_rptledger_item.where('parentid = :parentid AND year >= :effectivityyear AND amtpaid = 0', [parentid: ledger.objid, effectivityyear: faas.effectivityyear]).delete()
+        createLedgerFaas(ledger, faas).each{
+            postLedgerFaas(it) 
         }
+        updateLedgerFaasInfo(faas, ledger)
+        adjustLedgerItemByEffectivity(faas, ledger)
+        postTaxDifference(ledger, faas)
     }    
 
     @ProxyMethod
@@ -524,8 +524,18 @@ class RPTLedgerService
             }
         }
         em_rptledger_faas.save(ledgerfaas)
+        
         //delete unpaid posted years greater than or equal to fromyear 
         em_rptledger_item.where('parentid = :rptledgerid and year >= :fromyear and amtpaid = 0 and taxdifference = 0', ledgerfaas).delete()
+
+        if ('TRY'.equalsIgnoreCase(ledgerfaas.txntype.objid)) {
+            //cancelled ledgerfaas greater than fromyear
+            em_rptledger_faas.debug = true
+            em_rptledger_faas
+                .find([rptledgerid: ledgerfaas.rptledgerid])
+                .where('fromyear > :fromyear', [fromyear: ledgerfaas.fromyear])
+                .update([state: 'CANCELLED'])
+        }
     }        
 
 

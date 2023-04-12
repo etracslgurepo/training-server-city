@@ -11,8 +11,8 @@
    <module version="2.08" file="shared/rameses-workflow-mgmt.jar" />
    <module version="2.02" file="shared/rameses-app-common.jar" />
    <module version="2.08" file="shared/rameses-enterprise.jar" />
-   <module version="2.04" file="shared/rameses-enterprise-admin.jar" />
-   <module version="2.05" file="shared/rameses-enterprise-admin-plugin.jar" />
+   <module version="2.05" file="shared/rameses-enterprise-admin.jar" />
+   <module version="2.06" file="shared/rameses-enterprise-admin-plugin.jar" />
    <module version="2.06" file="shared/rameses-enterprise-financial.jar" />
    <module version="2.02" file="shared/rameses-client-notification2.jar" />
    <module version="2.02" file="shared/rameses-email-client.jar" />

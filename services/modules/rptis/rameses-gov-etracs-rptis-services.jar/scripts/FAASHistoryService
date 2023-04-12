@@ -10,7 +10,10 @@ class FAASHistoryService
 	def env
 
 	@Service('FAASService')
-	def faasSvc 
+	def faasSvc
+
+	@Service('LogService')
+	def logSvc  
 
 	@DataContext('rpu_history')
 	def em_history
@@ -45,9 +48,8 @@ class FAASHistoryService
 		entity.canceldate = latestfaas.dtapproved
 		entity.cancelledbytdnos = latestfaas.tdno
 		def rpumasterid = latestfaas.rpumaster?.objid ? latestfaas.rpumaster.objid : latestfaas.rpu?.rpumasterid
-		entity.rpumaster = [objid: rpumasterid]
+		entity.rpumaster = [objid: faas.rpu.rpumasterid]
 		entity.prevhistory = [objid: latestfaas.objid]
-		println 'entity.rpumaster => ' + entity.rpumaster
 		return entity
 	}
 
@@ -80,6 +82,15 @@ class FAASHistoryService
 		entity = em_history.update(entity)
 		entity.cancelreason = cancelreason
 		return entity
+	}
+
+	@ProxyMethod 
+	public def modify(entity) {
+		entity = update(entity)
+		def refid = entity.faasid ? entity.faasid : entity.objid
+		def remarks = 'TD No. ' + entity.tdno
+		logSvc.logA('modify_history', 'rpu_history', refid, remarks)
+		return entity;
 	}
 
 	@ProxyMethod

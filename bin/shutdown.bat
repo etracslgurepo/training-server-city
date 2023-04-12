@@ -1,5 +1,7 @@
 @echo off
 
+title Stopping-TRAINING-SERVER-MUNI
+
 rem Setup the java command 
 rem set JAVA_HOME=C:\Program Files\Java\jdk1.6.0_27
 

@@ -45,6 +45,10 @@
             includefields="entityno,name,address.text">
                 <key field="beneficiary_objid" target="objid" />
         </complex>
+        <complex name="lgu" ref="sys_org" jointype="many-to-one" required="false"
+            includefields="code,name">
+                <key field="lguid" target="objid" />
+        </complex>
         <complex name="barangay" ref="barangay" jointype="many-to-one" required="false"
             includefields="indexno,pin,name">
                 <key field="barangayid" target="objid" />
